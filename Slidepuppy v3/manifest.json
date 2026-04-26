@@ -1,0 +1,33 @@
+{
+  "name": "SlidePuppy - AI Presentation Maker",
+  "short_name": "SlidePuppy",
+  "description": "An AI-powered tool to generate presentations instantly.",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#FFF8E1",
+  "theme_color": "#FFC300",
+  "icons": [
+    {
+      "src": "slide.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "slide.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "slide.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "slide.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Privacy Policy & Terms of Use - SlidePuppy</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+          --color-bg: #FFF8E1;
+          --color-surface: #FFFFFF;
+          --color-text: #1E1E1E;
+          --color-text-secondary: #5C5C5C;
+          --color-primary: #FF5733;
+          --color-secondary: #FFC300;
+          --color-outline: #1E1E1E;
+          --font-family-display: "Fredoka One", cursive;
+          --font-family-base: "Outfit", sans-serif;
+        }
+        body {
+            font-family: var(--font-family-base);
+            line-height: 1.7;
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            margin: 0;
+            padding: 0;
+        }
+        .container {
+            max-width: 800px;
+            margin: 2rem auto;
+            padding: 2rem;
+            background-color: var(--color-surface);
+            border: 2px solid var(--color-outline);
+            box-shadow: 8px 8px 0px var(--color-outline);
+            border-radius: 12px;
+        }
+        header {
+            text-align: center;
+            border-bottom: 2px solid var(--color-outline);
+            padding-bottom: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        header h1 {
+            font-family: var(--font-family-display);
+            font-size: 2.5rem;
+            color: var(--color-primary);
+            margin: 0;
+        }
+        header p {
+            font-size: 1.1rem;
+            color: var(--color-text-secondary);
+            margin-top: 0.5rem;
+        }
+        h2 {
+            font-family: var(--font-family-display);
+            font-size: 1.8rem;
+            color: var(--color-text);
+            margin-top: 2.5rem;
+            margin-bottom: 1rem;
+            border-bottom: 2px solid var(--color-secondary);
+            padding-bottom: 0.5rem;
+        }
+        h3 {
+            font-family: var(--font-family-display);
+            font-size: 1.3rem;
+            color: var(--color-text);
+            margin-top: 2rem;
+        }
+        p, li {
+            color: var(--color-text-secondary);
+        }
+        ul {
+            padding-left: 20px;
+        }
+        li {
+            margin-bottom: 0.75rem;
+        }
+        a {
+            color: var(--color-primary);
+            text-decoration: none;
+        }
+        a:hover {
+            text-decoration: underline;
+        }
+        strong {
+            color: var(--color-text);
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Legal Documents</h1>
+            <p>Privacy Policy & Terms of Use for SlidePuppy</p>
+        </header>
+
+        <section id="privacy-policy">
+            <h2>Privacy Policy</h2>
+            <p><strong>Last Updated:</strong> September 25, 2025</p>
+
+            <p>Welcome to SlidePuppy! Your privacy is critically important to us. This Privacy Policy explains how we handle your information when you use our web-based application. Our core privacy principle is transparency: SlidePuppy is designed to be a client-side application, meaning your sensitive data stays in your browser.</p>
+
+            <h3>1. Information We Collect and Why</h3>
+            <p>SlidePuppy operates almost entirely within your web browser. We do not have our own servers to store your personal data. Here’s a breakdown of the data involved:</p>
+            <ul>
+                <li><strong>API Keys (Gemini and Google Search):</strong> You are required to provide your own API keys to use the service. These keys are stored exclusively in your browser's <code>localStorage</code>. They are never transmitted to, or stored on, any server owned by SlidePuppy. Your browser sends these keys directly to the respective Google services for authentication.</li>
+                <li><strong>Presentation Content:</strong> Any information you enter into the form fields (such as topic, difficulty, audience, custom slide instructions) is used to construct prompts. This data is processed in-memory during your session and sent directly to the Google Gemini API to generate your presentation. We do not log, store, or analyze this content.</li>
+                <li><strong>Uploaded Images:</strong> Images you upload are converted to a Base64 format and stored in your browser's memory for the current session. This data is used solely to embed the images into the generated PowerPoint file.</li>
+            </ul>
+
+            <h3>2. How We Use Your Information</h3>
+            <p>Your data is used exclusively to provide the core functionality of SlidePuppy:</p>
+            <ul>
+                <li>Your <strong>API Keys</strong> are used to authenticate you with Google's services.</li>
+                <li>Your <strong>Presentation Content</strong> is sent to the Gemini API to generate slide content and to the Google Search API for research purposes.</li>
+                <li>Your <strong>Uploaded and Searched Images</strong> are embedded into the final downloadable presentation file (`.pptx`).</li>
+            </ul>
+
+            <h3>3. Third-Party Services</h3>
+            <p>SlidePuppy is an interface that relies on third-party services to function. Your interaction with these services is governed by their respective privacy policies:</p>
+            <ul>
+                <li><strong>Google AI (Gemini):</strong> Presentation content is sent to the Gemini API. We recommend you review <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a> to understand how they handle data submitted to their services.</li>
+                <li><strong>Google Programmable Search Engine:</strong> If you enable the custom search feature, your search queries are sent to the Google Search API. This is also covered by <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google's Privacy Policy</a>.</li>
+            </ul>
+
+            <h3>4. Data Storage and Security</h3>
+            <p><strong>We do not operate servers that store your personal data.</strong></p>
+            <ul>
+                <li><strong>Local Storage:</strong> The only information we persist is your API keys and form preferences, which are saved in your browser's <code>localStorage</code> for your convenience. You have full control over this and can clear your browser's storage at any time to remove this data permanently.</li>
+                <li><strong>In-Memory Processing:</strong> All other data, such as presentation topics and generated content, exists only for the duration of your active session in the browser. Once you close the browser tab, this information is gone.</li>
+            </ul>
+
+            <h3>5. Your Rights and Choices</h3>
+            <p>You have complete control over your data. You can view, edit, or clear your saved API keys and preferences by using your browser's developer tools to inspect and clear `localStorage` for this site.</p>
+
+            <h3>6. Changes to This Privacy Policy</h3>
+            <p>We may update this Privacy Policy from time to time. We will notify you of any changes by posting the new policy on this page. We encourage you to review this Privacy Policy periodically for any changes.</p>
+        </section>
+
+        <section id="terms-of-use">
+            <h2>Terms of Use</h2>
+            <p><strong>Last Updated:</strong> September 25, 2025</p>
+            <p>Please read these Terms of Use ("Terms") carefully before using the SlidePuppy application ("the Service"). Your access to and use of the Service is conditioned on your acceptance of and compliance with these Terms.</p>
+
+            <h3>1. Acceptance of Terms</h3>
+            <p>By accessing or using the Service, you agree to be bound by these Terms. If you disagree with any part of the terms, then you may not access the Service.</p>
+
+            <h3>2. Description of Service</h3>
+            <p>SlidePuppy is a client-side tool that helps users generate presentations by interfacing with third-party AI and search APIs. To use the Service, you must provide your own API keys from the respective third-party providers (e.g., Google AI Studio).</p>
+
+            <h3>3. User Responsibilities</h3>
+            <ul>
+                <li>You are solely responsible for obtaining and securing your own API keys.</li>
+                <li>You are responsible for all costs associated with the use of your API keys on third-party services.</li>
+                <li>You are responsible for the content you create and must ensure it does not violate any laws or infringe on any third-party rights.</li>
+                <li>You agree not to use the Service for any illegal or unauthorized purpose.</li>
+            </ul>
+
+            <h3>4. Intellectual Property</h3>
+            <ul>
+                <li><strong>Your Content:</strong> You retain full ownership and intellectual property rights to the presentations and content you generate using the Service.</li>
+                <li><strong>Our Service:</strong> We retain all ownership and intellectual property rights to the SlidePuppy application itself, including its source code, design, branding, and user interface.</li>
+            </ul>
+
+            <h3>5. Disclaimers and Limitation of Liability</h3>
+            <ul>
+                <li>The Service is provided on an "AS IS" and "AS AVAILABLE" basis. We make no warranties regarding the reliability, accuracy, or availability of the Service.</li>
+                <li>The content generated by the AI is for informational purposes only. We are not responsible for the accuracy, completeness, or usefulness of any information generated. You should independently verify any factual information before relying on it.</li>
+                <li>In no event shall SlidePuppy or its creators be liable for any direct, indirect, incidental, or consequential damages (including, but not limited to, costs of API usage, loss of data, or business interruption) arising out of the use or inability to use the Service.</li>
+            </ul>
+        </section>
+    </div>
+</body>
+</html>

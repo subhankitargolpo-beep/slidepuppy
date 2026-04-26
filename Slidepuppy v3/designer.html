@@ -1,0 +1,2580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SlidePuppy - AI Presentation Designer</title>
+    <!-- Google Fonts: A wide selection for design flexibility -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka+One&family=Outfit:wght@300;400;500;600&family=Roboto:ital,wght@0,400;0,700;1,400&family=Lato:ital,wght@0,400;0,700;1,400&family=Merriweather:ital,wght@0,400;0,700;1,400&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
+
+    <!-- Core Libraries for Canvas, PPTX, and PDF generation -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/fabric.js/5.3.0/fabric.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/pptxgenjs@3.12.0/dist/pptxgen.bundle.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+    <!-- MathQuill for rendering LaTeX equations -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.css"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathquill/0.10.1/mathquill.min.js"></script>
+
+    <style>
+        /* --- GLOBAL DESIGN SYSTEM --- */
+        :root {
+          /* Color Palette */
+          --color-bg: #FFF8E1;
+          --color-surface: #FFFFFF;
+          --color-text: #1E1E1E;
+          --color-text-secondary: #5C5C5C;
+          --color-primary: #FF5733;
+          --color-primary-hover: #E74C3C;
+          --color-secondary: #FFC300;
+          --color-accent: #34D399;
+          --color-border: #E0E0E0;
+          --color-outline: #1E1E1E; /* Updated to black for comic theme */
+          --color-success: #2ECC71;
+          --color-error: #E74C3C;
+          --color-success-rgb: 46, 204, 113;
+          --color-error-rgb: 231, 76, 60;
+
+          /* Typography System */
+          --font-family-display: "Fredoka One", cursive;
+          --font-family-base: "Outfit", sans-serif;
+
+          /* Spacing Scale */
+          --space-8: 8px;
+          --space-12: 12px;
+          --space-16: 16px;
+          --space-20: 20px;
+          --space-24: 24px;
+
+          /* Border Radius */
+          --radius-base: 12px;
+          --radius-lg: 16px;
+
+          /* Shadow System */
+          --shadow-soft: 0 4px 12px rgba(0, 0, 0, 0.08);
+          --shadow-comic: 4px 4px 0px var(--color-outline); /* Added comic shadow */
+        }
+
+        /* --- BASE STYLES --- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: var(--font-family-base);
+            color: var(--color-text);
+            background-color: var(--color-bg);
+            overflow: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+        
+        /* --- CORE APP LAYOUT --- */
+        .app-container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            padding-bottom: 35px; /* Space for the new footer */
+            position: relative;
+        }
+        
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .top-toolbar {
+            flex-shrink: 0;
+            height: 60px;
+            background: var(--color-surface);
+            border-bottom: 2px solid var(--color-outline); /* Comic border */
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 var(--space-20);
+            z-index: 10;
+        }
+
+        .left-sidebar, .right-properties {
+            flex-shrink: 0;
+            width: 280px;
+            background: var(--color-surface);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        .left-sidebar { border-right: 2px solid var(--color-outline); } /* Comic border */
+        .right-properties { border-left: 2px solid var(--color-outline); } /* Comic border */
+
+        .canvas-area {
+            flex: 1;
+            background: #f0f0f0;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            position: relative; /* For positioning the text editor */
+        }
+
+        /* --- REUSABLE COMPONENTS (COMIC THEME) --- */
+        .toolbar-section {
+            display: flex;
+            align-items: center;
+            gap: var(--space-12);
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-8) var(--space-16);
+            border-radius: var(--radius-base);
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            position: relative;
+            font-family: var(--font-family-display);
+            border: 2px solid var(--color-outline); /* Comic border */
+            box-shadow: var(--shadow-comic); /* Comic shadow */
+            transition: transform 0.15s, box-shadow 0.15s, background-color 0.15s;
+            font-weight: normal; /* Removed bold */
+        }
+        .btn:hover { 
+            transform: translateY(-2px); 
+            box-shadow: 6px 6px 0px var(--color-outline);
+        }
+        .btn:active {
+            box-shadow: 2px 2px 0px var(--color-outline);
+            transform: translateY(2px);
+        }
+        .btn--primary { background: var(--color-primary); color: white; }
+        .btn--primary:hover { background-color: var(--color-primary-hover); }
+        .btn--secondary { background: var(--color-secondary); color: var(--color-text); }
+        .btn--outline {
+            background: transparent;
+            color: var(--color-text);
+        }
+        .btn--outline:hover {
+             background-color: #f7f7f7;
+        }
+        .btn--small {
+            padding: var(--space-8) var(--space-12);
+            font-size: 12px;
+        }
+        .btn--tool {
+            width: 40px;
+            height: 40px;
+            padding: var(--space-8);
+            font-size: 16px;
+        }
+        .btn--tool.active {
+            background-color: var(--color-secondary);
+        }
+
+        .presentation-title {
+            font-family: var(--font-family-display);
+            font-size: 20px;
+            color: var(--color-primary);
+        }
+
+        /* --- SIDEBAR AND TABS (COMIC THEME) --- */
+        .sidebar-tabs {
+            display: flex;
+            border-bottom: 2px solid var(--color-outline);
+            flex-shrink: 0;
+        }
+
+        .tab {
+            flex: 1;
+            padding: var(--space-12);
+            background: none;
+            border: none;
+            font-family: var(--font-family-base);
+            font-weight: 500; /* Adjusted font weight */
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border-bottom: 3px solid transparent;
+        }
+
+        .tab.active {
+            color: var(--color-primary);
+            background: var(--color-bg);
+            border-bottom-color: var(--color-primary);
+            font-weight: 500;
+        }
+
+        .sidebar-content, .right-properties-content {
+            flex: 1;
+            padding: var(--space-16);
+            overflow-y: auto;
+        }
+
+        /* --- CANVAS AND PROPERTIES PANEL (COMIC THEME) --- */
+        .canvas-toolbar {
+            flex-shrink: 0;
+            height: 50px;
+            background: var(--color-surface);
+            border-bottom: 2px solid var(--color-outline);
+            padding: 0 var(--space-20);
+            display: flex;
+            gap: var(--space-12);
+            align-items: center;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: var(--space-20);
+            overflow: hidden;
+            position: relative; /* For text editor overlay */
+        }
+        
+        .canvas-wrapper {
+             box-shadow: 8px 8px 0px var(--color-outline); /* Comic shadow */
+             border-radius: var(--radius-base);
+             overflow: hidden;
+             border: 2px solid var(--color-outline);
+        }
+
+        #presentation-canvas {
+            background: white;
+        }
+        
+        .properties-section {
+            margin-bottom: var(--space-24);
+        }
+
+        .properties-title {
+            font-family: var(--font-family-display);
+            font-weight: normal; /* Removed bold */
+            margin-bottom: var(--space-12);
+            color: var(--color-text);
+            font-size: 18px;
+        }
+
+        .slide-thumbnail {
+            background: white;
+            border: 2px solid var(--color-outline);
+            border-radius: var(--radius-base);
+            padding: var(--space-12);
+            margin-bottom: var(--space-12);
+            cursor: pointer;
+            transition: all 0.2s ease;
+            aspect-ratio: 16/9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: var(--color-text-secondary);
+        }
+         .slide-thumbnail-content {
+            font-family: var(--font-family-base);
+            font-weight: 500;
+            color: var(--color-text);
+            text-align: center;
+        }
+
+        .slide-thumbnail:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-comic);
+        }
+
+        .slide-thumbnail.active {
+            border-color: var(--color-primary);
+            border-width: 3px;
+            background: rgba(255, 87, 51, 0.05);
+        }
+
+        .element-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-12);
+            margin-bottom: var(--space-16);
+        }
+
+        .element-item {
+            background: white;
+            border: 2px solid var(--color-outline);
+            border-radius: var(--radius-base);
+            padding: var(--space-16);
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-weight: 500;
+        }
+
+        .element-item:hover {
+            border-color: var(--color-primary);
+            box-shadow: var(--shadow-comic);
+            transform: translateY(-2px);
+        }
+
+        /* --- AI PROMPT AND FORM CONTROLS (COMIC THEME) --- */
+        .ai-prompt-area {
+            margin-bottom: var(--space-16);
+        }
+
+        .ai-textarea {
+            width: 100%;
+            min-height: 100px;
+            padding: var(--space-12);
+            border: 2px solid var(--color-outline);
+            border-radius: var(--radius-base);
+            font-family: var(--font-family-base);
+            resize: vertical;
+        }
+
+        .ai-textarea:focus {
+            outline: none;
+            border-color: var(--color-primary);
+            box-shadow: 0 0 0 3px rgba(255, 87, 51, 0.4);
+        }
+
+        .control-group {
+            margin-bottom: var(--space-16);
+        }
+        
+        .control-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-12);
+        }
+        
+        .control-row {
+            display: flex;
+            gap: var(--space-8);
+            margin-bottom: var(--space-12);
+        }
+
+        .layer-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: var(--space-8);
+        }
+
+        .control-label {
+            display: block;
+            margin-bottom: var(--space-8);
+            font-weight: normal; /* Removed bold */
+            font-family: var(--font-family-base);
+            font-size: 16px;
+        }
+
+        .control-input {
+          display: block;
+          width: 100%;
+          padding: var(--space-8) var(--space-12);
+          font-size: 16px;
+          line-height: 1.5;
+          color: var(--color-text);
+          background-color: var(--color-surface);
+          border: 2px solid var(--color-outline);
+          border-radius: var(--radius-base);
+          transition: border-color .15s ease-in-out,box-shadow .15s ease-in-out;
+        }
+        .control-input:focus { 
+            border-color: var(--color-primary); 
+            box-shadow: 0 0 0 3px rgba(255, 87, 51, 0.4); 
+            outline: none; 
+        }
+        select.control-input {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%231E1E1E'%3E%3Cpath d='M7 10l5 5 5-5H7z'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.75rem center;
+            background-size: 1.5em 1.5em;
+            padding-right: 2.5rem;
+        }
+
+        .color-picker-wrapper {
+            display: flex;
+            align-items: center;
+            gap: var(--space-8);
+        }
+
+        .color-picker {
+            width: 100%;
+            height: 40px;
+            border: none;
+            padding: 0;
+            border-radius: var(--radius-base);
+            cursor: pointer;
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-color: transparent;
+        }
+        .color-picker::-webkit-color-swatch {
+            border-radius: var(--radius-base);
+            border: 2px solid var(--color-outline);
+        }
+
+        /* --- UI FEEDBACK (NOTIFICATIONS & LOADERS) --- */
+        .notification {
+            position: fixed;
+            top: 80px;
+            right: 20px;
+            padding: var(--space-12) var(--space-16);
+            border-radius: var(--radius-base);
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+            font-weight: 500;
+            border: 2px solid transparent; 
+        }
+        .notification.success {
+            background-color: rgba(var(--color-success-rgb), 0.1); 
+            color: var(--color-success); 
+            border-color: rgba(var(--color-success-rgb), 0.3);
+        }
+        .notification.error {
+            background-color: rgba(var(--color-error-rgb), 0.1); 
+            color: var(--color-error); 
+            border-color: rgba(var(--color-error-rgb), 0.3);
+        }
+        .notification.info {
+            background-color: rgba(255, 195, 0, 0.2); 
+            color: var(--color-text); 
+            border-color: rgba(255, 195, 0, 0.4);
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .loader-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(255, 248, 225, 0.8);
+            display: flex; align-items: center; justify-content: center;
+            z-index: 9999; backdrop-filter: blur(4px); display: none;
+        }
+        .puppy-loader { width: 100px; height: 100px; position: relative; }
+        .puppy-loader .puppy-body {
+            width: 60px; height: 40px; background: #A0522D;
+            border-radius: 20px 20px 0 0; position: absolute; bottom: 20px; left: 20px; border: 3px solid #1E1E1E;
+        }
+        .puppy-loader .puppy-body::before {
+            content:''; width: 25px; height: 20px; background: white; position: absolute; top:10px; left:5px; border-radius: 50%;
+        }
+        .puppy-loader .head {
+            width: 40px; height: 45px; background: #A0522D; border-radius: 50% 50% 30% 30%;
+            position: absolute; bottom: 50px; left: 30px; border: 3px solid #1E1E1E;
+        }
+        .puppy-loader .ear {
+            width: 15px; height: 25px; background: #1E1E1E; border-radius: 0 0 15px 15px;
+            position: absolute; top: -3px; animation: ear-flop 1s infinite;
+        }
+        .puppy-loader .ear.left { left: -5px; }
+        .puppy-loader .ear.right { right: -5px; }
+        .puppy-loader .eye {
+            width: 8px; height: 8px; background: #1E1E1E; border-radius: 50%; position: absolute; top: 20px;
+        }
+        .puppy-loader .eye.left { left: 8px; }
+        .puppy-loader .eye.right { right: 8px; }
+        .puppy-loader .nose {
+            width: 8px; height: 5px; background: #1E1E1E; border-radius: 50%;
+            position: absolute; top: 30px; left: calc(50% - 4px);
+        }
+        .puppy-loader .tail {
+            width: 8px; height: 30px; background: white; border-radius: 4px;
+            position: absolute; left: 15px; bottom: 40px; transform-origin: bottom center;
+            animation: tail-wag 0.5s infinite; border: 3px solid #1E1E1E;
+        }
+        @keyframes tail-wag { 0%, 100% { transform: rotate(-20deg); } 50% { transform: rotate(20deg); } }
+        @keyframes ear-flop { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(10deg); } }
+
+        /* --- MODAL STYLES (COMIC THEME) --- */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.6);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 2000;
+            display: none;
+        }
+        .modal-content {
+            background-color: var(--color-surface);
+            padding: var(--space-20);
+            border-radius: var(--radius-lg);
+            width: 90%;
+            max-width: 1000px;
+            height: 90vh;
+            display: flex;
+            flex-direction: column;
+            box-shadow: var(--shadow-comic);
+            border: 2px solid var(--color-outline);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: var(--space-16);
+            flex-shrink: 0;
+        }
+        .modal-title {
+            font-family: var(--font-family-display);
+            font-size: 22px;
+            color: var(--color-primary);
+        }
+        .modal-close-btn {
+            background: none;
+            border: none;
+            font-size: 30px;
+            cursor: pointer;
+            color: var(--color-text-secondary);
+            line-height: 1;
+        }
+        .modal-body {
+            flex: 1;
+            overflow-y: hidden;
+            display: flex; 
+            flex-direction: column; 
+            gap: 16px;
+        }
+        .image-search-grid {
+             display: grid;
+             grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+             gap: 1rem;
+        }
+        .image-search-item {
+            aspect-ratio: 1 / 1;
+            background-color: #e2e8f0;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+        }
+        .image-search-item img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .image-search-item .overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(0,0,0,0.6);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+            padding: 8px;
+        }
+         .image-search-item:hover .overlay {
+            opacity: 1;
+        }
+
+        /* Search Type Toggle (Image vs. Vector) */
+        .search-type-toggle {
+            display: flex;
+            background-color: #e9ecef;
+            border-radius: var(--radius-base);
+            padding: 4px;
+            margin-bottom: 12px;
+        }
+        .search-type-btn {
+            flex: 1;
+            padding: 8px 12px;
+            border: none;
+            background-color: transparent;
+            border-radius: 10px;
+            font-weight: 500; /* Adjusted font weight */
+            color: var(--color-text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        .search-type-btn.active {
+            background-color: var(--color-surface);
+            color: var(--color-primary);
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        /* --- FOOTER --- */
+        .footer {
+            position: absolute;
+            bottom: 0;
+            width: 100%;
+            text-align: center;
+            padding: var(--space-8) 0;
+            background-color: var(--color-text);
+            color: var(--color-bg);
+            font-size: 14px;
+            z-index: 20;
+        }
+
+        /* --- TEXT EDITOR OVERLAY --- */
+        #text-editor-overlay {
+            position: absolute;
+            display: none;
+            background-color: white;
+            border: 2px solid var(--color-primary);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            z-index: 100;
+            resize: none;
+            overflow: hidden;
+            line-height: 1.16; /* Matches Fabric.js default for better WYSIWYG */
+            outline: none;
+            padding: 0;
+            margin: 0;
+            border-radius: 4px;
+        }
+
+    </style>
+</head>
+<body>
+    <!-- Full-screen loader for AI operations -->
+    <div class="loader-overlay" id="ai-loader">
+        <div class="puppy-loader">
+            <div class="tail"></div>
+            <div class="puppy-body"></div>
+            <div class="head">
+                <div class="ear left"></div>
+                <div class="ear right"></div>
+                <div class="eye left"></div>
+                <div class="eye right"></div>
+                <div class="nose"></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="app-container">
+        <!-- Main Application Header -->
+        <header class="top-toolbar">
+            <div class="toolbar-section">
+                <button class="btn btn--secondary" id="new-slide">+ New Slide</button>
+                <button class="btn btn--outline" id="duplicate-slide">Duplicate</button>
+                <button class="btn btn--outline" id="delete-slide">Delete</button>
+            </div>
+            <div class="toolbar-section">
+                <h1 class="presentation-title" id="presentation-title">AI Presentation Designer</h1>
+            </div>
+            <div class="toolbar-section">
+                <button class="btn btn--primary" id="export-pptx">Export PPTX</button>
+                <button class="btn btn--outline" id="save-work">Save</button>
+            </div>
+        </header>
+
+        <div class="main-content">
+            <!-- Left Sidebar for Slides, Elements, and AI Tools -->
+            <aside class="left-sidebar">
+                <div class="sidebar-tabs">
+                    <button class="tab active" data-tab="slides">Slides</button>
+                    <button class="tab" data-tab="elements">Elements</button>
+                    <button class="tab" data-tab="ai">AI Tools</button>
+                </div>
+                <div class="sidebar-content" id="sidebar-content">
+                    <!-- Sidebar content is dynamically populated by JavaScript -->
+                </div>
+            </aside>
+
+            <!-- Central Canvas Editing Area -->
+            <main class="canvas-area">
+                <div class="canvas-toolbar">
+                    <button class="btn btn--outline" id="add-text">Add Text</button>
+                    <span style="margin: 0 12px;">|</span>
+                    <button class="btn btn--outline" id="undo">Undo</button>
+                    <button class="btn btn--outline" id="redo">Redo</button>
+                </div>
+                <div class="canvas-container" id="canvas-container">
+                    <div class="canvas-wrapper">
+                        <canvas id="presentation-canvas"></canvas>
+                    </div>
+                     <!-- New Text Editor Overlay -->
+                    <textarea id="text-editor-overlay"></textarea>
+                </div>
+            </main>
+
+            <!-- Right Properties Panel for selected objects -->
+            <aside class="right-properties">
+                 <div class="right-properties-content" id="properties-content">
+                    <!-- Properties panel is dynamically populated by JavaScript -->
+                    <div class="properties-section">
+                        <h3 class="properties-title">Slide Background</h3>
+                         <div class="control-group">
+                            <label class="control-label">Color</label>
+                            <div class="color-picker-wrapper">
+                                <input class="color-picker" type="color" id="background-color">
+                            </div>
+                        </div>
+                    </div>
+                     <div class="properties-section">
+                        <h3 class="properties-title">No Selection</h3>
+                        <p style="color: var(--color-text-secondary); font-size: 14px;">
+                            Select an object to edit its properties
+                        </p>
+                    </div>
+                </div>
+            </aside>
+        </div>
+         <!-- Added Footer -->
+        <footer class="footer">
+            <p>&copy; 2025 SlidePuppy. All rights reserved.</p>
+        </footer>
+    </div>
+
+    <!-- Modal for Image and Vector Search -->
+    <div id="image-search-modal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">Image Search</h2>
+                <button id="modal-close-btn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div style="flex-shrink: 0;">
+                     <div class="search-type-toggle">
+                        <button class="search-type-btn active" data-search-type="image">🖼️ Images</button>
+                        <button class="search-type-btn" data-search-type="vector">✨ Vectors (SVG)</button>
+                     </div>
+                     <div style="display: grid; grid-template-columns: 1fr auto; gap: 8px; margin-bottom: 8px;">
+                        <input type="text" id="image-search-query" class="control-input" placeholder="e.g., business meeting on a spaceship">
+                        <select id="image-license-filter" class="control-input">
+                            <option value="">Any License</option>
+                            <option value="cc_publicdomain">Public Domain</option>
+                            <option value="cc_attribute">Attribution</option>
+                            <option value="cc_sharealike">Share Alike</option>
+                            <option value="cc_noncommercial">Non-Commercial</option>
+                            <option value="cc_nonderived">No Derivatives</option>
+                        </select>
+                     </div>
+                     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                        <button id="image-search-btn" class="btn btn--primary" style="width: 100%;">Search</button>
+                        <button id="image-search-assisted-btn" class="btn btn--secondary" style="width: 100%;">AI Relevant Search</button>
+                     </div>
+                </div>
+                <div style="flex: 1; overflow-y: auto; background: #f0f0f0; border-radius: var(--radius-base); padding: var(--space-12);">
+                    <div id="image-search-loader" style="display: none; justify-content: center; margin: 16px 0;">
+                       <div class="puppy-loader" style="transform: scale(0.6);">
+                           <div class="tail"></div><div class="puppy-body"></div>
+                           <div class="head"><div class="ear left"></div><div class="ear right"></div><div class="eye left"></div><div class="eye right"></div><div class="nose"></div></div>
+                       </div>
+                    </div>
+                    <div id="image-search-results" class="image-search-grid">
+                        <p id="image-search-placeholder" style="grid-column: 1 / -1; text-align: center; color: var(--color-text-secondary);">Search results will appear here.</p>
+                    </div>
+                </div>
+                 <div id="image-load-more-container" style="text-align: center; flex-shrink: 0; display: none;">
+                    <button id="image-load-more-btn" class="btn btn--outline">Load More</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal for Math Equation Editor -->
+    <div id="math-modal" class="modal-overlay">
+        <div class="modal-content" style="max-width: 600px; height: auto;">
+            <div class="modal-header">
+                <h2 class="modal-title">Math Equation Editor</h2>
+                <button id="math-modal-close-btn" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body" style="gap: 20px;">
+                <div>
+                    <label class="control-label">Enter your equation below:</label>
+                    <span id="math-editor" style="width: 100%; border: 2px solid var(--color-border); padding: 10px; border-radius: var(--radius-base); font-size: 18px; display: block;"></span>
+                </div>
+                 <div>
+                    <label class="control-label">LaTeX Output:</label>
+                    <textarea id="latex-output" class="ai-textarea" style="min-height: 80px; font-family: 'Courier Prime', monospace; background: #f8f8f8;" readonly></textarea>
+                </div>
+                <button id="insert-math-btn" class="btn btn--primary" style="width: 100%;">Insert Equation</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class DBHelper {
+            constructor(dbName, version = 1) {
+                this.dbName = dbName;
+                this.version = version;
+                this.db = null;
+            }
+
+            // Opens and initializes the database
+            async open() {
+                return new Promise((resolve, reject) => {
+                    if (this.db) return resolve(this.db);
+                    const request = indexedDB.open(this.dbName, this.version);
+                    request.onerror = () => reject("IndexedDB error: " + request.error);
+                    request.onsuccess = (event) => {
+                        this.db = event.target.result;
+                        resolve(this.db);
+                    };
+                    request.onupgradeneeded = (event) => {
+                         const db = event.target.result;
+                        if (!db.objectStoreNames.contains('designerData')) {
+                            db.createObjectStore('designerData', { keyPath: 'id' });
+                        }
+                    };
+                });
+            }
+
+            // Gets data from a specific object store by its key
+            async getData(storeName, key) {
+                const db = await this.open();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(storeName, 'readonly');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.get(key);
+                    request.onsuccess = () => resolve(request.result);
+                    request.onerror = () => reject("Error getting data: " + request.error);
+                });
+            }
+
+            // Clears all data from an object store
+            async clearStore(storeName) {
+                const db = await this.open();
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction(storeName, 'readwrite');
+                    const store = transaction.objectStore(storeName);
+                    const request = store.clear();
+                    request.onsuccess = () => resolve();
+                    request.onerror = () => reject("Error clearing store: " + request.error);
+                });
+            }
+        }
+
+	/**
+         * @class PresentationDesigner
+         * Main class for the SlidePuppy AI Presentation Designer.
+         * Manages the Fabric.js canvas, slides, AI integration, properties panels, and user interactions.
+         */
+        class PresentationDesigner {
+            constructor() {
+                // Core state variables
+		this.dbHelper = new DBHelper('SlidePuppyDB');
+                this.canvas = null;
+                this.slides = [];
+                this.currentSlideIndex = 0;
+                this.geminiApiKey = '';
+                this.googleSearchKey = '';
+                this.googleEngineId = '';
+                this.history = [];
+                this.historyIndex = -1;
+                this.clipboard = null;
+                this.loader = document.getElementById('ai-loader');
+                this.globalFooter = '';
+                
+                // Namespace for image search state and DOM elements
+                this.imageSearch = { 
+                    currentPage: 1,
+                    currentQuery: '',
+                    currentLicense: '',
+                    modal: document.getElementById('image-search-modal'),
+                    queryInput: document.getElementById('image-search-query'),
+                    licenseFilter: document.getElementById('image-license-filter'),
+                    resultsContainer: document.getElementById('image-search-results'),
+                    loader: document.getElementById('image-search-loader'),
+                    placeholder: document.getElementById('image-search-placeholder'),
+                    loadMoreContainer: document.getElementById('image-load-more-container'),
+                    loadMoreBtn: document.getElementById('image-load-more-btn'),
+                    searchType: 'image'
+                };
+
+                // State and DOM elements for the Math Editor modal
+                this.mathModal = {
+                    element: document.getElementById('math-modal'),
+                    closeBtn: document.getElementById('math-modal-close-btn'),
+                    editorSpan: document.getElementById('math-editor'),
+                    latexOutput: document.getElementById('latex-output'),
+                    insertBtn: document.getElementById('insert-math-btn'),
+                    mathField: null
+                };
+
+                 // New state object for the text editor overlay
+                this.textEditor = {
+                    element: null,
+                    activeObject: null
+                };
+
+                // Theme colors for JS usage
+                this.themeColors = {
+                    primary: '#FF5733',
+                    text: '#1E1E1E',
+                    secondary: '#FFC300',
+                    accent: '#34D399',
+                    surface: '#FFFFFF'
+                };
+                
+                this.fontOptions = [
+                    'Outfit', 'Arial', 'Times New Roman', 'Roboto', 'Lato', 'Merriweather', 'Courier Prime', 'Fredoka One'
+                ];
+
+                this.init();
+            }
+
+	        
+            async init() {
+                await this.loadInitialData();
+                this.setupCanvas();
+                this.createTextEditorElement(); // Initialize the text editor
+                this.setupEventListeners();
+                this.setupImageSearchEventListeners();
+                this.setupMathModalEventListeners();
+                this.renderSidebar();
+                this.updateUI();
+                this.resizeCanvas(); // Initial resize
+
+                this.showNotification('success', 'Designer loaded. Ready to create!');
+            }
+
+            async loadInitialData() {
+                try {
+                    // Fetch the main presentation data from IndexedDB
+                    const presentationData = await this.dbHelper.getData('designerData', 'latestPresentation');
+                    
+                    // Clean up the database after fetching the data
+                    await this.dbHelper.clearStore('designerData');
+
+                    // These small items are still loaded from localStorage
+                    this.geminiApiKey = localStorage.getItem('geminiApiKey') || '';
+                    const apiKeys = JSON.parse(localStorage.getItem('slidePuppyApiKeys') || '{}');
+                    this.googleSearchKey = apiKeys.googleSearchApiKey || '';
+                    this.googleEngineId = apiKeys.googleSearchEngineId || '';
+
+                    if (presentationData) {
+                        this.slides = presentationData.slides.map((slide, index) => ({
+                            id: crypto.randomUUID(),
+                            title: slide.title || `Slide ${index + 1}`,
+                            content: slide.content || [],
+                            image: slide.image || null, // Will be null if omitted
+                            canvasState: slide.canvasState || null
+                        }));
+                    }
+                    
+                    this.globalFooter = localStorage.getItem('slidePuppyGlobalFooter') || '';
+
+                    if (this.slides.length === 0) {
+                        this.slides.push({
+                            id: crypto.randomUUID(),
+                            title: 'Slide 1',
+                            content: [],
+                            image: null,
+                            canvasState: null
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading data from IndexedDB:', error);
+                    this.showNotification('error', 'Could not load presentation data.');
+                }
+            }
+
+            setupCanvas() {
+                const canvasEl = document.getElementById('presentation-canvas');
+                this.canvas = new fabric.Canvas(canvasEl, {
+                    width: 800,
+                    height: 450,
+                    backgroundColor: this.themeColors.surface,
+                    preserveObjectStacking: true
+                });
+
+                this.canvas.on({
+                    'selection:created': () => this.updatePropertiesPanel(),
+                    'selection:updated': () => this.updatePropertiesPanel(),
+                    'selection:cleared': () => this.updatePropertiesPanel(),
+                    'object:modified': () => this.saveState(),
+                    // New event listener for double-clicking to edit text
+                    'mouse:dblclick': (options) => this.handleDoubleClick(options)
+                });
+
+                this.loadSlideToCanvas();
+            }
+
+             resizeCanvas() {
+                const container = document.getElementById('canvas-container');
+                if (!container) return;
+
+                // Use 95% of the container's space to create a visual padding
+                const containerWidth = container.clientWidth * 0.95;
+                const containerHeight = container.clientHeight * 0.95;
+
+                // The canvas has a fixed aspect ratio of 16:9 (800 / 450)
+                const canvasAspectRatio = 800 / 450;
+                const containerAspectRatio = containerWidth / containerHeight;
+
+                let finalWidth;
+                let finalHeight;
+
+                // Determine the final dimensions based on the container's aspect ratio
+                // to prevent stretching and maintain the 16:9 shape.
+                if (containerAspectRatio > canvasAspectRatio) {
+                    // Container is wider than the canvas, so height is the limiting factor
+                    finalHeight = containerHeight;
+                    finalWidth = finalHeight * canvasAspectRatio;
+                } else {
+                    // Container is taller than (or equal to) the canvas, so width is the limiting factor
+                    finalWidth = containerWidth;
+                    finalHeight = finalWidth / canvasAspectRatio;
+                }
+                
+                // Get the wrapper element that provides the comic-style border and shadow
+                const wrapper = document.querySelector('.canvas-wrapper');
+                if(wrapper) {
+                    wrapper.style.width = `${finalWidth}px`;
+                    wrapper.style.height = `${finalHeight}px`;
+                }
+
+                // Set the physical dimensions of the canvas element itself using Fabric's method.
+                // This updates the <canvas> element's style and attributes.
+                this.canvas.setDimensions({ width: finalWidth, height: finalHeight });
+
+                // The logical canvas dimensions are always 800x450. We calculate the zoom
+                // needed to fit this logical canvas into the new physical dimensions.
+                const zoom = finalWidth / 800;
+                this.canvas.setZoom(zoom);
+
+                // This is crucial to update Fabric's internal coordinate system for mouse events.
+                this.canvas.calcOffset();
+                this.canvas.renderAll();
+            }
+
+            setupEventListeners() {
+                // Top Toolbar
+                document.getElementById('new-slide').addEventListener('click', () => this.addNewSlide());
+                document.getElementById('duplicate-slide').addEventListener('click', () => this.duplicateSlide());
+                document.getElementById('delete-slide').addEventListener('click', () => this.deleteSlide());
+                document.getElementById('export-pptx').addEventListener('click', () => this.exportToPPTX());
+                document.getElementById('save-work').addEventListener('click', () => this.saveWork());
+
+                // Canvas Toolbar
+                document.getElementById('add-text').addEventListener('click', () => this.addText('Your Text Here', { fontSize: 24 }));
+                document.getElementById('undo').addEventListener('click', () => this.undo());
+                document.getElementById('redo').addEventListener('click', () => this.redo());
+
+                // Sidebar Tabs
+                document.querySelectorAll('.tab').forEach(tab => {
+                    tab.addEventListener('click', () => this.switchTab(tab.dataset.tab));
+                });
+                
+                document.getElementById('background-color').addEventListener('input', (e) => this.updateBackgroundColor(e.target.value));
+
+                // Keyboard Shortcuts
+                document.addEventListener('keydown', (e) => this.handleKeyboard(e));
+                 window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            // --- UI Rendering ---
+            renderSidebar() {
+                const activeTab = document.querySelector('.tab.active').dataset.tab;
+                const content = document.getElementById('sidebar-content');
+
+                switch (activeTab) {
+                    case 'slides':
+                        content.innerHTML = this.renderSlidesPanel();
+                        this.setupSlidesEvents();
+                        break;
+                    case 'elements':
+                        content.innerHTML = this.renderElementsPanel();
+                        this.setupElementsEvents();
+                        break;
+                    case 'ai':
+                        content.innerHTML = this.renderAIPanel();
+                        this.setupAIEvents();
+                        break;
+                }
+            }
+            
+            renderSlidesPanel() {
+                return `
+                    <div class="properties-section">
+                         <h3 class="properties-title">Footer</h3>
+                         <div class="control-group">
+                            <label class="control-label">Presentation Footer</label>
+                            <input class="control-input" type="text" id="global-footer-input" placeholder="e.g., Company Name | © 2025" value="${this.globalFooter}">
+                         </div>
+                    </div>
+                    <div style="margin-bottom: 16px;">
+                        <button class="btn btn--primary" style="width: 100%;" id="add-new-slide-sidebar">+ Add New Slide</button>
+                    </div>
+                    ${this.slides.map((slide, index) => `
+                        <div class="slide-thumbnail ${index === this.currentSlideIndex ? 'active' : ''}" data-index="${index}">
+                            <div class="slide-thumbnail-content">${index + 1}. ${slide.title}</div>
+                        </div>`).join('')}
+                `;
+            }
+
+            renderElementsPanel() {
+                 return `
+                    <div class="properties-section">
+                        <h3 class="properties-title">Text</h3>
+                        <div class="element-grid">
+                            <div class="element-item" data-element="heading">Add Heading</div>
+                            <div class="element-item" data-element="text">Add Body Text</div>
+                        </div>
+                    </div>
+                     <div class="properties-section">
+                        <h3 class="properties-title">Media</h3>
+                        <div class="element-grid">
+                            <div class="element-item" data-element="image">Add Image</div>
+                            <div class="element-item" data-element="magic-image">✨Search</div>
+                        </div>
+                    </div>
+                    <div class="properties-section">
+                        <h3 class="properties-title">Tools & Shapes</h3>
+                        <div class="element-grid" style="grid-template-columns: 1fr 1fr 1fr;">
+                            <a href="https://physgraph.netlify.app/" target="_blank" class="element-item" style="text-decoration: none; color: inherit;">📊</a>
+                            <div class="element-item" data-element="insert-math">∑</div>
+                            <div class="element-item" data-element="rectangle">⬜</div>
+                            <div class="element-item" data-element="circle">⭕</div>
+                            <div class="element-item" data-element="triangle">🔺</div>
+                            <div class="element-item" data-element="line">➖</div>
+                        </div>
+                    </div>
+                `;
+            }
+
+            renderAIPanel() {
+                 return `
+                    <div class="properties-section">
+                        <h3 class="properties-title">Designer Daisy</h3>
+                        <p style="font-size: 14px; color: var(--color-text-secondary); margin-bottom: 16px;">
+                            Uses the API keys set in the main SlidePuppy app.
+                        </p>
+                        <div class="ai-prompt-area">
+                            <textarea class="ai-textarea" id="ai-prompt" placeholder="e.g., change the theme to ocean blue..."></textarea>
+                        </div>
+                        <button class="btn btn--primary" style="width: 100%; margin-bottom: 12px;" id="ai-generate">✨ Generate / Edit</button>
+                        
+                        <div style="margin-top: 16px; display: flex; flex-direction: column; align-items: center; gap: 8px;">
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="ai-modify-content-checkbox" style="margin-right: 8px; transform: scale(1.2);">
+                                <label for="ai-modify-content-checkbox" style="font-size: 14px; color: var(--color-text-secondary); font-weight: 500;">Modify Content</label>
+                            </div>
+                            <div style="display: flex; align-items: center;">
+                                <input type="checkbox" id="ai-apply-all-checkbox" style="margin-right: 8px; transform: scale(1.2);">
+                                <label for="ai-apply-all-checkbox" style="font-size: 14px; color: var(--color-text-secondary); font-weight: 500;">Apply to all slides</label>
+                            </div>
+                        </div>
+                    </div>`;
+            }
+
+            updateUI() {
+                document.getElementById('presentation-title').textContent = `Slide ${this.currentSlideIndex + 1} of ${this.slides.length}`;
+                document.getElementById('background-color').value = this.canvas.backgroundColor;
+                this.renderSidebar();
+                this.updatePropertiesPanel();
+            }
+
+            // --- Event Handlers for Dynamic UI ---
+            setupSlidesEvents() {
+                document.querySelectorAll('.slide-thumbnail').forEach(thumb => {
+                    thumb.addEventListener('click', () => this.switchToSlide(parseInt(thumb.dataset.index)));
+                });
+                document.getElementById('add-new-slide-sidebar').addEventListener('click', () => this.addNewSlide());
+                document.getElementById('global-footer-input').addEventListener('input', (e) => this.updateGlobalFooter(e.target.value));
+            }
+
+            setupElementsEvents() {
+                document.querySelectorAll('.element-item').forEach(item => {
+                    item.addEventListener('click', () => {
+                        const elementType = item.dataset.element;
+                        if (elementType === 'image') {
+                            this.addImage();
+                        } else if (elementType === 'magic-image') {
+                            this.openImageSearchModal();
+                        } else if (elementType === 'insert-math') {
+                            this.openMathModal();
+                        }
+                        else {
+                            this.addElementToCanvas(elementType);
+                        }
+                    });
+                });
+            }
+            
+            setupAIEvents() {
+                document.getElementById('ai-generate')?.addEventListener('click', () => this.handleAIGenerate());
+                document.getElementById('ai-improve')?.addEventListener('click', () => this.improveSlideWithAI());
+            }
+
+            switchTab(tab) {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelector(`[data-tab="${tab}"]`).classList.add('active');
+                this.renderSidebar();
+            }
+
+            // --- Slide Management ---
+            switchToSlide(index) {
+                if (index < 0 || index >= this.slides.length || index === this.currentSlideIndex) return;
+                this.saveCurrentSlideState();
+                this.currentSlideIndex = index;
+                this.loadSlideToCanvas();
+                this.updateUI();
+                this.history = [];
+                this.historyIndex = -1;
+                this.resetImageSearchModal();
+            }
+            
+            saveCurrentSlideState() {
+                if(this.canvas) {
+                    this.hideTextEditor(); // Ensure any active text editing is saved first
+                    const existingFooter = this.canvas.getObjects().find(obj => obj.isFooter);
+                    if (existingFooter) {
+                        this.canvas.remove(existingFooter);
+                    }
+                    this.slides[this.currentSlideIndex].canvasState = JSON.stringify(this.canvas.toJSON(['backgroundColor']));
+                }
+            }
+
+            async loadSlideToCanvas() {
+                this.canvas.clear();
+                const currentSlide = this.slides[this.currentSlideIndex];
+
+                if (currentSlide.canvasState) {
+                    const state = JSON.parse(currentSlide.canvasState);
+                    this.canvas.backgroundColor = state.backgroundColor || this.themeColors.surface;
+                    // Use a promise to wait for the canvas to load before proceeding
+                    await new Promise(resolve => {
+                        this.canvas.loadFromJSON(state, () => {
+                            // After loading, ensure all text objects are non-editable
+                            this.canvas.getObjects().forEach(obj => {
+                                if (obj.isType('textbox')) {
+                                    obj.set('editable', false);
+                                }
+                            });
+                            this.canvas.renderAll();
+                            resolve();
+                        });
+                    });
+                } else {
+                    this.canvas.backgroundColor = this.themeColors.surface;
+                    await this.createInitialSlideContent(currentSlide);
+                }
+                this.addOrUpdateFooterObject();
+                this.canvas.renderAll();
+                this.saveState();
+            }
+
+            async createInitialSlideContent(slide) {
+                let yPosition = 40;
+                let textWidth = 720;
+                let textLeft = 40;
+
+                if (slide.title) {
+                    const titleObj = new fabric.Textbox(slide.title, {
+                        top: yPosition, fontSize: 40, fontWeight: 'normal', fontFamily: 'Fredoka One',
+                        fill: this.themeColors.primary, width: 720, textAlign: 'center', editable: false
+                    });
+                    this.canvas.add(titleObj).centerObjectH(titleObj);
+                    yPosition = titleObj.top + titleObj.getScaledHeight() + 30;
+                }
+
+                if (slide.image) {
+                    try {
+                        const img = await this._loadImageFromUrl(slide.image);
+                        
+                        const maxWidth = 300;
+                        const maxHeight = 250;
+                        const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                        img.scale(scale);
+
+                        img.set({
+                            left: 760,
+                            top: yPosition,
+                            originX: 'right',
+                            editable: false
+                        });
+                        this.canvas.add(img);
+                        
+                        textWidth = 440; // Adjust text width to make space for the image
+                    } catch (error) {
+                        console.error("Failed to load slide image:", error);
+                        this.showNotification('error', 'Could not load an image for this slide.');
+                    }
+                }
+
+                if (slide.content && slide.content.length > 0) {
+                    const contentText = slide.content.map(item => `• ${item.text || item}`).join('\n');
+                    const bodyObj = new fabric.Textbox(contentText, {
+                        top: yPosition,
+                        left: textLeft,
+                        fontSize: 22,
+                        width: textWidth,
+                        fontFamily: 'Outfit', 
+                        fill: this.themeColors.text,
+                        editable: false
+                    });
+                    this.canvas.add(bodyObj);
+                }
+                
+                if (this.canvas.getObjects().length > 0) {
+                    this.canvas.setActiveObject(this.canvas.getObjects()[0]);
+                }
+                this.canvas.renderAll();
+            }
+
+            // Helper to promisify fabric image loading
+            _loadImageFromUrl(url) {
+                return new Promise((resolve, reject) => {
+                    fabric.Image.fromURL(url, (img) => {
+                        if (img) {
+                            resolve(img);
+                        } else {
+                            reject(new Error('Failed to load image from URL.'));
+                        }
+                    }, { crossOrigin: 'anonymous' });
+                });
+            }
+
+            addNewSlide() {
+                this.saveCurrentSlideState();
+                const newSlide = {
+                    id: crypto.randomUUID(),
+                    title: `Slide ${this.slides.length + 1}`,
+                    content: [],
+                    image: null,
+                    canvasState: null
+                };
+                this.slides.push(newSlide);
+                this.switchToSlide(this.slides.length - 1);
+            }
+
+            duplicateSlide() {
+                this.saveCurrentSlideState();
+                const currentSlide = JSON.parse(JSON.stringify(this.slides[this.currentSlideIndex]));
+                const duplicatedSlide = {
+                    ...currentSlide,
+                    id: crypto.randomUUID(),
+                    title: `${currentSlide.title} (Copy)`
+                };
+                this.slides.splice(this.currentSlideIndex + 1, 0, duplicatedSlide);
+                this.switchToSlide(this.currentSlideIndex + 1);
+            }
+
+            deleteSlide() {
+                if (this.slides.length <= 1) {
+                    this.showNotification('error', 'Cannot delete the only slide.');
+                    return;
+                }
+                this.slides.splice(this.currentSlideIndex, 1);
+                if (this.currentSlideIndex >= this.slides.length) {
+                    this.currentSlideIndex = this.slides.length - 1;
+                }
+                this.loadSlideToCanvas();
+                this.updateUI();
+            }
+
+            // --- Canvas Element Management & NEW TEXT EDITING LOGIC ---
+            addElementToCanvas(elementType) {
+                switch(elementType) {
+                    case 'heading': this.addText('Your Heading', { fontSize: 36, fontWeight: 'normal', fontFamily: 'Fredoka One' }, 'textbox'); break;
+                    case 'text': this.addText('Body text', { fontSize: 22, width: 300 }, 'textbox'); break;
+                    case 'rectangle': this.addShape('rect'); break;
+                    case 'circle': this.addShape('circle'); break;
+                    case 'triangle': this.addShape('triangle'); break;
+                    case 'line': this.addShape('line'); break;
+                }
+            }
+            
+            addText(text, options, type = 'textbox') {
+                const defaults = { fontFamily: 'Outfit', fill: this.themeColors.text };
+                // Ensure all new text objects are not directly editable
+                const textObj = new fabric.Textbox(text, { ...defaults, ...options, editable: false });
+                this.canvas.add(textObj).centerObject(textObj).setActiveObject(textObj);
+                return textObj;
+            }
+
+            createTextEditorElement() {
+                const editor = document.getElementById('text-editor-overlay');
+                this.textEditor.element = editor;
+
+                editor.addEventListener('blur', () => this.hideTextEditor());
+                editor.addEventListener('keydown', (e) => {
+                    if (e.key === 'Escape') {
+                        // On escape, discard changes and hide editor
+                        this.textEditor.element.value = this.textEditor.activeObject.text;
+                        this.hideTextEditor();
+                    }
+                });
+            }
+
+            handleDoubleClick(options) {
+                if (options.target && options.target.isType('textbox')) {
+                    this.editTextObject(options.target);
+                }
+            }
+
+            editTextObject(target) {
+                if (this.textEditor.activeObject) {
+                    this.hideTextEditor(); // Finalize any previous editing
+                }
+                
+                this.textEditor.activeObject = target;
+                const editor = this.textEditor.element;
+                
+                target.set({ opacity: 0 }); // Hide the original fabric object
+                this.canvas.renderAll();
+
+                const zoom = this.canvas.getZoom();
+                const br = target.getBoundingRect();
+                
+                const wrapper = document.querySelector('.canvas-wrapper');
+                const containerRect = document.querySelector('.canvas-container').getBoundingClientRect();
+                const wrapperRect = wrapper.getBoundingClientRect();
+
+                // Calculate the offset of the wrapper within its container
+                const wrapperOffsetX = wrapperRect.left - containerRect.left;
+                const wrapperOffsetY = wrapperRect.top - containerRect.top;
+
+                // Position the textarea precisely over the fabric object
+                editor.style.left = `${wrapperOffsetX + br.left}px`;
+                editor.style.top = `${wrapperOffsetY + br.top}px`;
+                editor.style.width = `${br.width}px`;
+                editor.style.height = `${br.height}px`;
+
+                // Match all visual styles from the fabric object
+                editor.style.fontSize = `${target.fontSize * zoom}px`;
+                editor.style.fontFamily = target.fontFamily;
+                editor.style.fontWeight = target.fontWeight;
+                editor.style.fontStyle = target.fontStyle;
+                editor.style.textDecoration = target.underline ? 'underline' : 'none';
+                editor.style.color = target.fill;
+                editor.style.textAlign = target.textAlign;
+                editor.style.lineHeight = target.lineHeight;
+                
+                editor.style.transform = `rotate(${target.angle}deg)`;
+                editor.style.transformOrigin = 'top left';
+
+                editor.value = target.text;
+                editor.style.display = 'block';
+                editor.focus();
+                editor.select();
+            }
+
+            hideTextEditor() {
+                const editor = this.textEditor.element;
+                const target = this.textEditor.activeObject;
+
+                if (!editor || !target) {
+                    return;
+                }
+
+                // Apply the edited text to the fabric object
+                target.set('text', editor.value);
+                
+                // Restore visibility and reset state
+                target.set({ opacity: 1 });
+                editor.style.display = 'none';
+                this.textEditor.activeObject = null;
+                
+                this.canvas.discardActiveObject(); // Deselect to avoid confusion
+                this.canvas.renderAll();
+                this.saveState(); // Record the change in history
+            }
+
+
+            addShape(type) {
+                let shape;
+                const options = { left: 150, top: 150 };
+                switch(type) {
+                    case 'rect':
+                        shape = new fabric.Rect({ ...options, width: 150, height: 100, fill: this.themeColors.accent });
+                        break;
+                    case 'circle':
+                        shape = new fabric.Circle({ ...options, radius: 50, fill: this.themeColors.secondary });
+                        break;
+                    case 'triangle':
+                        shape = new fabric.Triangle({ ...options, width: 100, height: 100, fill: this.themeColors.primary });
+                        break;
+                    case 'line':
+                        shape = new fabric.Line([50, 100, 250, 100], { left: 100, top: 100, stroke: this.themeColors.text, strokeWidth: 5 });
+                        break;
+                }
+                if(shape) this.canvas.add(shape).centerObject(shape).setActiveObject(shape);
+            }
+            
+            addImage() {
+                const input = document.createElement('input');
+                input.type = 'file';
+                input.accept = 'image/*';
+                input.onchange = e => {
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = event => this.insertImageFromUrl(event.target.result);
+                        reader.readAsDataURL(file);
+                    }
+                };
+                input.click();
+            }
+
+            insertImageFromUrl(url) {
+                const placeholder = new fabric.Group([
+                    new fabric.Rect({
+                        width: 250,
+                        height: 180,
+                        fill: '#f0f2f5',
+                        stroke: '#ced4da',
+                        strokeWidth: 2,
+                        strokeDashArray: [8, 8],
+                        originX: 'center',
+                        originY: 'center'
+                    }),
+                    new fabric.Text('Loading Image...', {
+                        fontSize: 22,
+                        fontFamily: 'Outfit',
+                        fill: '#495057',
+                        originX: 'center',
+                        originY: 'center'
+                    })
+                ], {
+                    left: 400, top: 225, originX: 'center', originY: 'center', selectable: false
+                });
+                this.canvas.add(placeholder);
+                this.canvas.renderAll();
+
+                const proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+                fabric.Image.fromURL(proxiedUrl, (img) => {
+                    this.canvas.remove(placeholder);
+                    const padding = 40;
+                    const maxWidth = 800 - padding * 2;
+                    const maxHeight = 450 - padding * 2;
+                    const scale = Math.min(maxWidth / img.width, maxHeight / img.height);
+                    img.scale(scale).center();
+                    this.canvas.add(img).setActiveObject(img).renderAll();
+                    this.saveState();
+                }, { 
+                    crossOrigin: 'anonymous',
+                    onError: () => {
+                        this.canvas.remove(placeholder);
+                        this.canvas.renderAll();
+                        this.showNotification('error', 'Could not load image. The source may be blocked or offline.');
+                    }
+                });
+            }
+
+            insertSvgFromUrl(url) {
+                const placeholder = new fabric.Group([
+                    new fabric.Rect({ width: 250, height: 180, fill: '#f0f2f5', stroke: '#ced4da', strokeWidth: 2, strokeDashArray: [8, 8], originX: 'center', originY: 'center' }),
+                    new fabric.Text('Loading Vector...', { fontSize: 22, fontFamily: 'Outfit', fill: '#495057', originX: 'center', originY: 'center' })
+                ], { left: 400, top: 225, originX: 'center', originY: 'center', selectable: false });
+                this.canvas.add(placeholder);
+                this.canvas.renderAll();
+
+                const proxiedUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+
+                fabric.loadSVGFromURL(proxiedUrl, (objects, options) => {
+                    this.canvas.remove(placeholder);
+                    if (!objects) {
+                        this.showNotification('error', 'Could not parse SVG. The file may be invalid.');
+                        return;
+                    }
+                    const svgGroup = fabric.util.groupSVGElements(objects, options);
+                    const padding = 40;
+                    const maxWidth = 800 - padding * 2;
+                    const maxHeight = 450 - padding * 2;
+                    const scale = Math.min(maxWidth / svgGroup.width, maxHeight / svgGroup.height);
+                    svgGroup.scale(scale);
+                    if (!svgGroup.fill) {
+                        svgGroup.set({ fill: this.themeColors.text });
+                    }
+                    svgGroup.center();
+                    this.canvas.add(svgGroup).setActiveObject(svgGroup).renderAll();
+                    this.saveState();
+                }, null, {
+                    crossOrigin: 'anonymous',
+                    onError: () => {
+                        this.canvas.remove(placeholder);
+                        this.canvas.renderAll();
+                        this.showNotification('error', 'Could not load SVG. The source may be blocked or offline.');
+                    }
+                });
+            }
+            
+            updateBackgroundColor(color) {
+                this.canvas.setBackgroundColor(color, this.canvas.renderAll.bind(this.canvas));
+                this.saveState();
+            }
+
+            // --- Footer Logic ---
+            updateGlobalFooter(text) {
+                this.globalFooter = text;
+                this.addOrUpdateFooterObject();
+                this.saveState();
+            }
+
+            addOrUpdateFooterObject() {
+                const existingFooter = this.canvas.getObjects().find(obj => obj.isFooter);
+                if (existingFooter) {
+                    this.canvas.remove(existingFooter);
+                }
+
+                if (this.globalFooter) {
+                    const footerObject = new fabric.Textbox(this.globalFooter, {
+                        left: 400, 
+                        top: 420,
+                        width: 780,
+                        fontSize: 12,
+                        fill: '#888888',
+                        textAlign: 'center',
+                        originX: 'center',
+                        selectable: false,
+                        isFooter: true
+                    });
+                    this.canvas.add(footerObject);
+                }
+                this.canvas.renderAll();
+            }
+
+            // --- AI Functionality ---
+            showLoader() { this.loader.style.display = 'flex'; }
+            hideLoader() { this.loader.style.display = 'none'; }
+
+            handleAIGenerate() {
+                const applyToAll = document.getElementById('ai-apply-all-checkbox').checked;
+                if (applyToAll) {
+                    this.editPresentationWithAI();
+                } else {
+                    this.generateOrEditSingleSlide();
+                }
+            }
+            
+            async generateOrEditSingleSlide() {
+                const prompt = document.getElementById('ai-prompt')?.value;
+                const modifyContent = document.getElementById('ai-modify-content-checkbox').checked;
+
+                if (!prompt || !this.geminiApiKey) {
+                    this.showNotification('error', 'Please enter a prompt and ensure API key is set.');
+                    return;
+                }
+                this.showLoader();
+                this.showNotification('info', 'AI is working...');
+
+                const existingImage = this.canvas.getObjects().find(obj => obj.isType('image'));
+                if (existingImage) {
+                    this.canvas.remove(existingImage);
+                }
+
+                const currentObjects = this.canvas.toJSON(['type', 'text', 'fontFamily', 'isFooter']);
+                
+                let contentRule = "The user wants a new slide. Create a new layout and generate new text content based on the user's prompt.";
+                if (this.canvas.getObjects().length > 0) {
+                    contentRule = modifyContent
+                        ? "The user wants to edit this slide. You can modify the existing layout and text content, or replace it entirely to fulfill the request."
+                        : "IMPORTANT: You MUST NOT change any existing text. Only modify the layout, colors, and non-text elements to fulfill the user's request.";
+                }
+
+                const fullPrompt = `You are a slide layout designer. The canvas is 800x450.
+                ${contentRule}
+                User's prompt: "${prompt}".
+                
+                Here is the current slide's JSON (it's empty if this is a new slide): ${JSON.stringify(currentObjects.objects.filter(o => !o.isFooter && o.type !== 'image'))}
+
+                Return ONLY a valid JSON object with two optional keys: "backgroundColor" (a hex color string) and "objects" (an array of fabric.js objects).
+                - Your response MUST be a single, valid JSON object. Do not include any comments (like //) or extra text outside the JSON structure.
+                - For multi-line text (like bullet points), you MUST use the escaped newline character "\\n" within the JSON string value. For example: "text": "Line 1\\nLine 2".
+                - Use 'textbox' for text elements.
+                - Use 'Fredoka One' for titles/headings and 'Outfit' for all other text.`;
+
+                try {
+                    const response = await this.callGeminiAPI(fullPrompt);
+                    const aiResponse = this.parseJsonResponse(response);
+                    
+                    this.canvas.clear();
+
+                    if (aiResponse.backgroundColor) {
+                        this.canvas.setBackgroundColor(aiResponse.backgroundColor, this.canvas.renderAll.bind(this.canvas));
+                    } else {
+                        const currentState = this.slides[this.currentSlideIndex].canvasState ? JSON.parse(this.slides[this.currentSlideIndex].canvasState) : {};
+                        this.canvas.backgroundColor = currentState.backgroundColor || this.themeColors.surface;
+                    }
+
+                    if (aiResponse.objects) {
+                        this.sanitizeAIObjects(aiResponse.objects);
+                        const objects = await this.createFabricObjects(aiResponse.objects);
+                        objects.forEach(obj => {
+                            if(obj) this.canvas.add(obj);
+                        });
+                    }
+                    
+                    if (existingImage) {
+                        this.canvas.add(existingImage);
+                    }
+
+                    this.addOrUpdateFooterObject();
+                    this.canvas.renderAll();
+                    this.saveState();
+                    this.showNotification('success', 'AI task completed!');
+
+                } catch (error) {
+                    this.showNotification('error', `AI task failed: ${error.message}`);
+                } finally {
+                    this.hideLoader();
+                }
+            }
+
+            async ensureAllSlidesAreRendered() {
+                const tempCanvas = new fabric.Canvas(null, {width: 800, height: 450});
+                for (let i = 0; i < this.slides.length; i++) {
+                    if (!this.slides[i].canvasState) {
+                        tempCanvas.clear();
+                        this.createInitialSlideContentOnCanvas(this.slides[i], tempCanvas);
+                        this.slides[i].canvasState = JSON.stringify(tempCanvas.toJSON(['backgroundColor']));
+                    }
+                }
+            }
+            
+            createInitialSlideContentOnCanvas(slide, canvas) {
+                canvas.backgroundColor = this.themeColors.surface;
+                let yPosition = 40;
+                if (slide.title) {
+                    const titleObj = new fabric.Textbox(slide.title, {
+                        top: yPosition, fontSize: 40, fontWeight: 'normal', fontFamily: 'Fredoka One',
+                        fill: this.themeColors.primary, width: 720, textAlign: 'center'
+                    });
+                    canvas.add(titleObj).centerObjectH(titleObj);
+                    yPosition += titleObj.getScaledHeight() + 30;
+                }
+
+                if (slide.content && slide.content.length > 0) {
+                    const contentText = slide.content.map(item => `• ${item.text || item}`).join('\n');
+                     const textObj = new fabric.Textbox(contentText, {
+                        top: yPosition, left: 40, fontSize: 22, width: 720,
+                        fontFamily: 'Outfit', fill: this.themeColors.text
+                    });
+                    canvas.add(textObj);
+                }
+            }
+
+            async editPresentationWithAI() {
+                const prompt = document.getElementById('ai-prompt')?.value;
+                const modifyContent = document.getElementById('ai-modify-content-checkbox').checked;
+
+                if (!prompt || !this.geminiApiKey) {
+                    this.showNotification('error', 'Please enter a global instruction.');
+                    return;
+                }
+
+                this.showLoader();
+                this.showNotification('info', `Applying AI edits to all ${this.slides.length} slides...`);
+                await this.ensureAllSlidesAreRendered();
+
+                for (let i = 0; i < this.slides.length; i++) {
+                    const slideState = JSON.parse(this.slides[i].canvasState);
+                    const existingImageObjectData = slideState.objects.find(obj => obj.type === 'image');
+
+                    let contentRule = modifyContent
+                        ? "You are free to modify text content to fit the user's request."
+                        : "IMPORTANT: You MUST NOT change any existing text content. Only modify layout, colors, and non-text elements.";
+
+                    const singleSlidePrompt = `You are a presentation theme designer applying a global change. The user's overall instruction for the whole presentation is: "${prompt}".
+                    Now, apply this instruction to the following single slide.
+                    ${contentRule}
+                    Here is the slide's current JSON (excluding any images): ${JSON.stringify({...slideState, objects: slideState.objects.filter(obj => obj.type !== 'image')})}
+                    Return ONLY a valid JSON object for this single slide with "backgroundColor" and "objects" keys. Do not include comments.`;
+
+                    try {
+                        const response = await this.callGeminiAPI(singleSlidePrompt);
+                        const aiResponse = this.parseJsonResponse(response);
+                        
+                        this.sanitizeAIObjects(aiResponse.objects || []);
+
+                        const newSlideState = {
+                            backgroundColor: aiResponse.backgroundColor || slideState.backgroundColor,
+                            objects: aiResponse.objects || slideState.objects.filter(obj => obj.type !== 'image')
+                        };
+
+                        if (existingImageObjectData) {
+                            newSlideState.objects.push(existingImageObjectData);
+                        }
+                        
+                        this.slides[i].canvasState = JSON.stringify(newSlideState);
+
+                    } catch (error) {
+                        console.error(`Error processing slide ${i + 1}:`, error);
+                        this.showNotification('error', `Failed to process slide ${i + 1}.`);
+                        this.hideLoader();
+                        return;
+                    }
+                }
+
+                await this.loadSlideToCanvas();
+                this.hideLoader();
+                this.showNotification('success', 'Global AI edits applied to all slides!');
+            }
+
+            async improveSlideWithAI() {
+                if (!this.geminiApiKey || this.canvas.getObjects().length === 0) {
+                    this.showNotification('error', 'Cannot improve an empty slide.');
+                    return;
+                }
+                this.showLoader();
+                this.showNotification('info', 'AI is improving the layout...');
+                
+                const currentObjects = this.canvas.toJSON(['type', 'text', 'fontSize', 'fontWeight', 'fontFamily', 'isFooter']);
+                const prompt = `You are a presentation design expert. The canvas is 800x450. Here is a JSON object of a slide's elements: ${JSON.stringify(currentObjects.objects.filter(o => !o.isFooter))}
+                Your task is to improve the layout for visual appeal and clarity by only adjusting layout properties ('left', 'top', 'width', 'height', 'textAlign', 'scaleX', 'scaleY'). Do NOT add, remove, or change the content (text, colors, font family) of the objects.
+                Return ONLY a valid JSON array of the modified objects with their new layout properties.`;
+
+                try {
+                    const response = await this.callGeminiAPI(prompt);
+                    const newLayout = this.parseJsonResponse(response);
+
+                    if (Array.isArray(newLayout) && newLayout.length === this.canvas.getObjects().filter(o => !o.isFooter).length) {
+                        this.canvas.getObjects().filter(o => !o.isFooter).forEach((obj, index) => {
+                            if (newLayout[index]) obj.set(newLayout[index]);
+                        });
+                        this.canvas.renderAll();
+                        this.saveState();
+                        this.showNotification('success', 'Layout improved by AI!');
+                    } else throw new Error("AI returned an invalid layout.");
+                } catch (error) {
+                    this.showNotification('error', `AI improvement failed: ${error.message}`);
+                } finally {
+                    this.hideLoader();
+                }
+            }
+            
+            async createFabricObjects(objects) {
+                const objectPromises = [];
+                
+                for (const objData of objects) {
+                    if (objData.type === 'image' && objData.src) {
+                        objectPromises.push(new Promise((resolve) => {
+                            fabric.Image.fromURL(objData.src, (img) => {
+                                if (img) {
+                                    img.set(objData);
+                                    resolve(img);
+                                } else {
+                                    console.error('Failed to load image from URL:', objData.src);
+                                    resolve(null);
+                                }
+                            }, { crossOrigin: 'anonymous' });
+                        }));
+                    }
+                }
+                
+                const nonImageObjectsData = objects.filter(obj => obj.type !== 'image');
+                const enlivenedObjects = await new Promise(resolve => fabric.util.enlivenObjects(nonImageObjectsData, resolve));
+
+                const allObjects = await Promise.all(objectPromises);
+                return allObjects.concat(enlivenedObjects).flat();
+            }
+
+
+            // --- History (Undo/Redo) Management ---
+            saveState() {
+                const state = JSON.stringify(this.canvas.toJSON(['backgroundColor']));
+                if (this.historyIndex < 0 || state !== this.history[this.historyIndex]) {
+                    this.history = this.history.slice(0, this.historyIndex + 1);
+                    this.history.push(state);
+                    this.historyIndex = this.history.length - 1;
+                }
+            }
+
+            undo() {
+                if (this.historyIndex > 0) {
+                    this.historyIndex--;
+                    this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
+                        this.addOrUpdateFooterObject();
+                        this.canvas.renderAll();
+                    });
+                }
+            }
+
+            redo() {
+                if (this.historyIndex < this.history.length - 1) {
+                    this.historyIndex++;
+                    this.canvas.loadFromJSON(this.history[this.historyIndex], () => {
+                         this.addOrUpdateFooterObject();
+                         this.canvas.renderAll();
+                    });
+                }
+            }
+
+            // --- Export & Save Functionality ---
+            async exportToPPTX() {
+                this.showNotification('info', 'Generating PPTX... Please wait.');
+                this.saveCurrentSlideState();
+                await this.ensureAllSlidesAreRendered();
+                const pptx = new PptxGenJS();
+                pptx.layout = 'LAYOUT_16x9';
+
+                const PxToInX = (val) => (val / 800) * 10;
+                const PxToInY = (val) => (val / 450) * 5.625;
+                const PxToPt = (val) => val * (72 / 96); 
+
+                for (const slideData of this.slides) {
+                    const slide = pptx.addSlide();
+                    const state = slideData.canvasState ? JSON.parse(slideData.canvasState) : null;
+                    if (!state) continue;
+
+                    slide.background = { color: (state.backgroundColor || this.themeColors.surface).replace('#', '') };
+
+                    const objectsToExport = state.objects || [];
+                    
+                    for (const obj of objectsToExport) {
+                        const options = {
+                            x: PxToInX(obj.left), y: PxToInY(obj.top),
+                            w: PxToInX(obj.width * (obj.scaleX || 1)), h: PxToInY(obj.height * (obj.scaleY || 1)),
+                        };
+                        
+                        if (obj.type === 'textbox') {
+                            const textOptions = {
+                                ...options,
+                                fontFace: obj.fontFamily,
+                                fontSize: PxToPt(obj.fontSize),
+                                color: (obj.fill || this.themeColors.text).replace('#', ''),
+                                bold: obj.fontWeight === 'bold',
+                                italic: obj.fontStyle === 'italic',
+                                underline: obj.underline,
+                                align: obj.textAlign || 'left',
+                                lineSpacing: PxToPt((obj.lineHeight || 1.16) * obj.fontSize)
+                            };
+                             if (obj.strokeWidth > 0) {
+                                textOptions.outline = {
+                                    size: PxToPt(obj.strokeWidth),
+                                    color: (obj.stroke || this.themeColors.text).replace('#', '')
+                                };
+                            }
+                            slide.addText(obj.text, textOptions);
+                        } else if (obj.type === 'rect') {
+                             slide.addShape(pptx.shapes.RECTANGLE, {...options, fill: {color: (obj.fill || this.themeColors.accent).replace('#','')}});
+                        } else if (obj.type === 'circle') {
+                             slide.addShape(pptx.shapes.OVAL, {...options, fill: {color: (obj.fill || this.themeColors.secondary).replace('#','')}});
+                        } else if (obj.type === 'triangle') {
+                             slide.addShape(pptx.shapes.ISOSCELES_TRIANGLE, {...options, fill: {color: (obj.fill || this.themeColors.primary).replace('#','')}});
+                        } else if (obj.type === 'line') {
+                             slide.addShape(pptx.shapes.LINE, {
+                                 x: PxToInX(obj.left), y: PxToInY(obj.top),
+                                 w: PxToInX(obj.width * (obj.scaleX || 1)), h: 0,
+                                 line: { color: (obj.stroke || this.themeColors.text).replace('#',''), width: PxToPt(obj.strokeWidth) }
+                             });
+                        } else if (obj.type === 'image' && obj.src) {
+                            slide.addImage({ data: obj.src, ...options });
+                        }
+                    }
+
+                    if (this.globalFooter) {
+                         slide.addText(this.globalFooter, {
+                            x: 0, y: 5.2, w: '100%', h: 0.3, align: 'center',
+                            fontFace: 'Outfit', fontSize: 10, color: '888888'
+                        });
+                    }
+                }
+                await pptx.writeFile({ fileName: 'SlidePuppy-Designed.pptx' });
+                this.showNotification('success', 'PPTX exported successfully!');
+            }
+            
+            saveWork() {
+                this.saveCurrentSlideState();
+                localStorage.setItem('presentationData', JSON.stringify(this.slides));
+                localStorage.setItem('slidePuppyGlobalFooter', this.globalFooter);
+                this.showNotification('success', 'Your work has been saved locally!');
+            }
+            
+            // --- Properties Panel Logic ---
+            updatePropertiesPanel() {
+                 const activeObject = this.canvas.getActiveObject();
+                const propertiesContent = document.getElementById('properties-content');
+                
+                let selectionHtml = '';
+                if (!activeObject || activeObject.isFooter) {
+                    selectionHtml = `<div class="properties-section">
+                        <h3 class="properties-title">No Selection</h3>
+                        <p style="color: var(--color-text-secondary); font-size: 14px;">Select an object to edit.</p>
+                    </div>`;
+                } else if (activeObject.type === 'textbox') {
+                    selectionHtml = this.renderTextProperties(activeObject);
+                } else if (['rect', 'circle', 'triangle', 'line'].includes(activeObject.type)) {
+                    selectionHtml = this.renderShapeProperties(activeObject);
+                } else if (activeObject.type === 'image') {
+                    selectionHtml = this.renderLayerControls() + this.renderObjectActions();
+                }
+
+                propertiesContent.innerHTML = this.renderBackgroundProperties() + selectionHtml;
+                this.setupPropertiesEvents();
+            }
+
+            renderBackgroundProperties() {
+                return `<div class="properties-section">
+                    <h3 class="properties-title">Slide Background</h3>
+                     <div class="control-group">
+                        <label class="control-label">Color</label>
+                        <div class="color-picker-wrapper"><input class="color-picker" type="color" id="background-color" value="${this.canvas.backgroundColor}"></div>
+                    </div>
+                </div>`;
+            }
+
+            renderTextProperties(obj) {
+                const fillColor = obj.fill || this.themeColors.text;
+                const fontOptionsHtml = this.fontOptions.map(font => `<option value="${font}" ${obj.fontFamily === font ? 'selected' : ''}>${font}</option>`).join('');
+
+                return `<div class="properties-section">
+                    <h3 class="properties-title">Text Properties</h3>
+                    <div class="control-group"><label class="control-label">Font Family</label><select id="font-family-select" class="control-input">${fontOptionsHtml}</select></div>
+                    <div class="control-grid">
+                        <div class="control-group"><label class="control-label">Font Size</label><input class="control-input" type="number" id="font-size" value="${Math.round(obj.fontSize)}"></div>
+                        <div class="control-group"><label class="control-label">Line Height</label><input class="control-input" type="number" id="line-height" step="0.1" value="${obj.lineHeight}"></div>
+                    </div>
+                     <div class="control-group"><label class="control-label">Style</label><div class="control-row">
+                           <button class="btn btn--outline btn--tool ${obj.fontStyle === 'italic' ? 'active' : ''}" id="toggle-italic">I</button>
+                           <button class="btn btn--outline btn--tool ${obj.underline ? 'active' : ''}" id="toggle-underline">U</button>
+                        </div></div>
+                    <div class="control-group"><label class="control-label">Paragraph</label><div class="control-row">
+                           <button class="btn btn--outline btn--tool ${obj.textAlign === 'left' ? 'active' : ''}" id="align-left">L</button>
+                           <button class="btn btn--outline btn--tool ${obj.textAlign === 'center' ? 'active' : ''}" id="align-center">C</button>
+                           <button class="btn btn--outline btn--tool ${obj.textAlign === 'right' ? 'active' : ''}" id="align-right">R</button>
+                           <button class="btn btn--outline btn--tool" id="toggle-bullets">•</button>
+                        </div></div>
+                    <div class="control-group"><label class="control-label">Color</label><div class="color-picker-wrapper"><input class="color-picker" type="color" id="text-color" value="${fillColor}"></div></div>
+                     <div class="properties-section"><h3 class="properties-title">Outline</h3><div class="control-grid">
+                            <div class="control-group"><label class="control-label">Color</label><div class="color-picker-wrapper"><input class="color-picker" type="color" id="text-stroke-color" value="${obj.stroke || '#ffffff'}"></div></div>
+                            <div class="control-group"><label class="control-label">Width</label><input class="control-input" type="number" id="text-stroke-width" min="0" step="1" value="${obj.strokeWidth || 0}"></div>
+                        </div></div>
+                    ${this.renderLayerControls()}
+                    ${this.renderObjectActions()}
+                </div>`;
+            }
+
+            renderShapeProperties(obj) {
+                const colorProp = obj.type === 'line' ? 'stroke' : 'fill';
+                const colorValue = obj[colorProp] || this.themeColors.text;
+                return `<div class="properties-section">
+                    <h3 class="properties-title">Shape Properties</h3>
+                    <div class="control-group"><label class="control-label">Color</label><div class="color-picker-wrapper"><input class="color-picker" type="color" id="shape-color" value="${colorValue}"></div></div>
+                    ${this.renderLayerControls()}
+                    ${this.renderObjectActions()}
+                </div>`;
+            }
+
+            renderLayerControls() {
+                 return `<div class="properties-section">
+                    <h3 class="properties-title">Layer Order</h3>
+                     <div class="layer-controls">
+                        <button class="btn btn--outline btn--small" id="bring-forward">Forward</button>
+                        <button class="btn btn--outline btn--small" id="send-backward">Backward</button>
+                        <button class="btn btn--outline btn--small" id="bring-to-front">To Front</button>
+                        <button class="btn btn--outline btn--small" id="send-to-back">To Back</button>
+                    </div>
+                 </div>`;
+            }
+            
+            renderObjectActions() {
+                return `<div class="properties-section">
+                    <h3 class="properties-title">Actions</h3>
+                    <button class="btn btn--outline" id="duplicate-object" style="width: 100%; margin-bottom: 8px;">Duplicate</button>
+                    <button class="btn btn--outline" id="delete-object" style="width: 100%;">Delete</button>
+                </div>`;
+            }
+
+            setupPropertiesEvents() {
+                 document.getElementById('background-color')?.addEventListener('input', (e) => this.updateBackgroundColor(e.target.value));
+                 // Text
+                document.getElementById('font-family-select')?.addEventListener('change', e => this.updateActiveObject('fontFamily', e.target.value));
+                document.getElementById('font-size')?.addEventListener('input', e => this.updateActiveObject('fontSize', parseInt(e.target.value, 10)));
+                document.getElementById('line-height')?.addEventListener('input', e => this.updateActiveObject('lineHeight', parseFloat(e.target.value)));
+                document.getElementById('text-color')?.addEventListener('input', e => this.updateActiveObject('fill', e.target.value));
+                document.getElementById('text-stroke-color')?.addEventListener('input', e => this.updateActiveObject('stroke', e.target.value));
+                document.getElementById('text-stroke-width')?.addEventListener('input', e => this.updateActiveObject('strokeWidth', parseInt(e.target.value, 10)));
+                
+                document.getElementById('toggle-italic')?.addEventListener('click', () => this.toggleTextStyle('fontStyle', 'italic', 'normal'));
+                document.getElementById('toggle-underline')?.addEventListener('click', () => this.toggleTextStyle('underline', true, false));
+                
+                document.getElementById('align-left')?.addEventListener('click', () => this.updateActiveObject('textAlign', 'left'));
+                document.getElementById('align-center')?.addEventListener('click', () => this.updateActiveObject('textAlign', 'center'));
+                document.getElementById('align-right')?.addEventListener('click', () => this.updateActiveObject('textAlign', 'right'));
+                document.getElementById('toggle-bullets')?.addEventListener('click', () => this.toggleBulletPoints());
+
+                 // Shape
+                const shapeColorInput = document.getElementById('shape-color');
+                if (shapeColorInput) {
+                    shapeColorInput.addEventListener('input', e => {
+                        const obj = this.canvas.getActiveObject();
+                        if (obj) {
+                            const prop = obj.type === 'line' ? 'stroke' : 'fill';
+                            this.updateActiveObject(prop, e.target.value);
+                        }
+                    });
+                }
+                // Actions
+                document.getElementById('duplicate-object')?.addEventListener('click', () => this.duplicateObject());
+                document.getElementById('delete-object')?.addEventListener('click', () => this.deleteActiveObject());
+                // Layers
+                document.getElementById('bring-forward')?.addEventListener('click', () => this.bringForward());
+                document.getElementById('send-backward')?.addEventListener('click', () => this.sendBackward());
+                document.getElementById('bring-to-front')?.addEventListener('click', () => this.bringToFront());
+                document.getElementById('send-to-back')?.addEventListener('click', () => this.sendToBack());
+            }
+
+            // --- Text Formatting ---
+            toggleTextStyle(prop, activeValue, inactiveValue) {
+                const obj = this.canvas.getActiveObject();
+                if (obj) {
+                    const isStyleActive = obj.get(prop) === activeValue;
+                    obj.set(prop, isStyleActive ? inactiveValue : activeValue);
+                    this.canvas.renderAll();
+                    this.saveState();
+                    this.updatePropertiesPanel();
+                }
+            }
+
+            toggleBulletPoints() {
+                const activeObject = this.canvas.getActiveObject();
+                if (!activeObject || activeObject.type !== 'textbox') return;
+
+                const lines = activeObject.text.split('\n');
+                const areBulletsActive = lines.every(line => line.trim().startsWith('• '));
+
+                const newLines = lines.map(line => {
+                    if (areBulletsActive) {
+                        return line.replace(/^•\s*/, '');
+                    } else {
+                        return line.trim() ? `• ${line}` : line;
+                    }
+                });
+
+                activeObject.set('text', newLines.join('\n'));
+                this.canvas.renderAll();
+                this.saveState();
+            }
+
+            updateActiveObject(prop, value) {
+                const obj = this.canvas.getActiveObject();
+                if (obj) {
+                    obj.set(prop, value);
+                    this.canvas.renderAll();
+                    this.saveState();
+                }
+            }
+            
+            // --- Layer Management ---
+            bringForward() {
+                const obj = this.canvas.getActiveObject();
+                if (obj && !obj.isFooter) { this.canvas.bringForward(obj); this.saveState(); this.canvas.renderAll(); }
+            }
+            sendBackward() {
+                const obj = this.canvas.getActiveObject();
+                if (obj && !obj.isFooter) { this.canvas.sendBackwards(obj); this.saveState(); this.canvas.renderAll(); }
+            }
+            bringToFront() {
+                const obj = this.canvas.getActiveObject();
+                if (obj && !obj.isFooter) { this.canvas.bringToFront(obj); this.saveState(); this.canvas.renderAll(); }
+            }
+            sendToBack() {
+                const obj = this.canvas.getActiveObject();
+                if (obj && !obj.isFooter) { this.canvas.sendToBack(obj); this.saveState(); this.canvas.renderAll(); }
+            }
+
+            // --- Keyboard & Object Actions ---
+            handleKeyboard(e) {
+                if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+                const key = e.key.toLowerCase();
+                const isCtrl = e.ctrlKey || e.metaKey;
+
+                if (isCtrl && key === 'z') { e.preventDefault(); this.undo(); }
+                if (isCtrl && key === 'y') { e.preventDefault(); this.redo(); }
+                if (isCtrl && key === 's') { e.preventDefault(); this.saveWork(); }
+                if (isCtrl && key === 'c') { e.preventDefault(); this.copyObject(); }
+                if (isCtrl && key === 'v') { e.preventDefault(); this.pasteObject(); }
+                if (isCtrl && key === 'd') { e.preventDefault(); this.duplicateObject(); }
+
+                if (key === 'delete' || key === 'backspace') {
+                    const activeObject = this.canvas.getActiveObject();
+                    if (activeObject && !activeObject.isEditing) {
+                        e.preventDefault();
+                        this.deleteActiveObject();
+                    }
+                }
+            }
+            
+            deleteActiveObject() {
+                const activeObjects = this.canvas.getActiveObjects();
+                if (activeObjects.length) {
+                    activeObjects.forEach(obj => {
+                        if (!obj.isFooter) this.canvas.remove(obj);
+                    });
+                    this.canvas.discardActiveObject().renderAll();
+                    this.saveState();
+                }
+            }
+            
+            duplicateObject() {
+                const obj = this.canvas.getActiveObject();
+                if (obj && !obj.isFooter) {
+                    obj.clone(cloned => {
+                        cloned.set({ left: obj.left + 10, top: obj.top + 10 });
+                        this.canvas.add(cloned).setActiveObject(cloned).renderAll();
+                        this.saveState();
+                    });
+                }
+            }
+
+            copyObject() {
+                const activeObject = this.canvas.getActiveObject();
+                if (activeObject && !activeObject.isFooter) {
+                    activeObject.clone(cloned => this.clipboard = cloned);
+                    this.showNotification('info', 'Object copied.');
+                }
+            }
+
+            pasteObject() {
+                if (!this.clipboard) return;
+                this.clipboard.clone(cloned => {
+                    cloned.set({ left: this.clipboard.left + 20, top: this.clipboard.top + 20 });
+                    this.canvas.add(cloned).setActiveObject(cloned).renderAll();
+                    this.saveState();
+                });
+            }
+            
+            // --- IMAGE SEARCH ---
+            setupImageSearchEventListeners() {
+                document.getElementById('modal-close-btn').addEventListener('click', () => this.closeImageSearchModal());
+                document.getElementById('image-search-btn').addEventListener('click', () => this.handleImageSearch());
+                document.getElementById('image-search-assisted-btn').addEventListener('click', () => this.handleImageSearch(true));
+                this.imageSearch.loadMoreBtn.addEventListener('click', () => this.handleImageLoadMore());
+
+                document.querySelectorAll('.search-type-btn').forEach(btn => {
+                    btn.addEventListener('click', () => {
+                        document.querySelectorAll('.search-type-btn').forEach(b => b.classList.remove('active'));
+                        btn.classList.add('active');
+                        this.imageSearch.searchType = btn.dataset.searchType;
+                        const placeholderText = this.imageSearch.searchType === 'image' 
+                            ? 'e.g., business meeting on a spaceship' 
+                            : 'e.g., brain icon OR business vector';
+                        this.imageSearch.queryInput.placeholder = placeholderText;
+                    });
+                });
+            }
+
+            openImageSearchModal() {
+                this.imageSearch.modal.style.display = 'flex';
+            }
+
+            closeImageSearchModal() {
+                this.imageSearch.modal.style.display = 'none';
+            }
+            
+            resetImageSearchModal() {
+                this.imageSearch.resultsContainer.innerHTML = '';
+                this.imageSearch.resultsContainer.appendChild(this.imageSearch.placeholder);
+                this.imageSearch.placeholder.style.display = 'block';
+                this.imageSearch.loadMoreContainer.style.display = 'none';
+                this.imageSearch.queryInput.value = '';
+                this.imageSearch.currentPage = 1;
+                this.imageSearch.currentQuery = '';
+                this.imageSearch.currentLicense = '';
+            }
+
+            getSlideContentAsText() {
+                return this.canvas.getObjects()
+                    .filter(obj => obj.type === 'textbox' && !obj.isFooter)
+                    .map(obj => obj.text)
+                    .join(' ');
+            }
+            
+            async handleImageSearch(isAssisted = false) {
+                let query = this.imageSearch.queryInput.value.trim();
+                const license = this.imageSearch.licenseFilter.value;
+
+                if (this.imageSearch.searchType === 'vector' && !isAssisted) {
+                    query += " vector icon filetype:svg";
+                }
+
+                if (isAssisted) {
+                    const slideText = this.getSlideContentAsText();
+                    if (!slideText) {
+                        this.showNotification('error', 'Current slide has no text for AI to analyze.');
+                        return;
+                    }
+                    if (!this.geminiApiKey) {
+                        this.showNotification('error', 'Please provide a Gemini API Key for AI assistance.');
+                        return;
+                    }
+                    this.showNotification('info', 'AI is generating a search query...');
+                    this.imageSearch.loader.style.display = 'flex';
+                    try {
+                        query = await this.getAiSearchQueries(slideText, this.imageSearch.searchType);
+                        
+                        if (this.imageSearch.searchType === 'vector') {
+                            query += " filetype:svg";
+                        }
+
+                        this.showNotification('success', `AI searching for: "${query}"`);
+                        this.imageSearch.queryInput.value = query;
+                    } catch (e) {
+                        this.showNotification('error', `AI failed: ${e.message}`);
+                        this.imageSearch.loader.style.display = 'none';
+                        return;
+                    }
+                }
+
+                if (!query) {
+                    this.showNotification('error', 'Please enter a search query.');
+                    return;
+                }
+                if (!this.googleSearchKey || !this.googleEngineId) {
+                    this.showNotification('error', 'Please provide Google Search API Key and Engine ID in the AI Tools tab.');
+                    return;
+                }
+                
+                this.imageSearch.currentPage = 1;
+                this.imageSearch.currentQuery = query;
+                this.imageSearch.currentLicense = license;
+
+                this.imageSearch.resultsContainer.innerHTML = '';
+                if(this.imageSearch.placeholder) this.imageSearch.placeholder.style.display = 'none';
+                this.imageSearch.loadMoreContainer.style.display = 'none';
+                this.imageSearch.loader.style.display = 'flex';
+
+                try {
+                    const items = await this.performImageSearch(query, license);
+                    this.displayImageResults(items);
+                    if (items && items.length === 10) {
+                        this.imageSearch.loadMoreContainer.style.display = 'block';
+                    }
+                } catch(e) {
+                     this.showNotification('error', `Search failed: ${e.message}`);
+                     this.imageSearch.resultsContainer.innerHTML = `<p style="grid-column: 1 / -1; text-align: center; color: var(--color-error);">${e.message}</p>`;
+                } finally {
+                    this.imageSearch.loader.style.display = 'none';
+                }
+            }
+
+            async handleImageLoadMore() {
+                this.imageSearch.currentPage++;
+                const startIndex = (this.imageSearch.currentPage - 1) * 10 + 1;
+                this.imageSearch.loadMoreBtn.textContent = 'Loading...';
+                this.imageSearch.loadMoreBtn.disabled = true;
+
+                try {
+                    const items = await this.performImageSearch(this.imageSearch.currentQuery, this.imageSearch.currentLicense, startIndex);
+                    this.displayImageResults(items, true);
+                    if (!items || items.length < 10) {
+                        this.imageSearch.loadMoreContainer.style.display = 'none';
+                        this.showNotification('info', 'No more images found.');
+                    }
+                } catch (e) {
+                     this.showNotification('error', `Failed to load more: ${e.message}`);
+                } finally {
+                    this.imageSearch.loadMoreBtn.textContent = 'Load More';
+                    this.imageSearch.loadMoreBtn.disabled = false;
+                }
+            }
+
+            async getAiSearchQueries(slideText, searchType = 'image') {
+                let systemPrompt = '';
+                if (searchType === 'vector') {
+                    systemPrompt = `You are an expert keyword extractor for finding SVG icons and vector graphics. Analyze the following slide content and generate a single, concise, and effective keyword string for a Google Image search for a vector graphic. Focus on concepts and objects. Return ONLY this keyword string. Do not add explanations. For example, if the content is 'Our Q3 earnings show a 20% growth in the European market', you might return 'growth icon arrow up infographic'.`;
+                } else {
+                    systemPrompt = `You are an expert keyword extractor for a search engine. Your task is to analyze the following slide content and generate a single, concise, and effective keyword string for a Google Image search. Return ONLY this keyword string. Do not add any explanations or introductory text. For example, if the content is 'Our Q3 earnings show a 20% growth in the European market', you might return 'business growth chart Europe'.`;
+                }
+
+                const fullPrompt = `${systemPrompt} Slide content: "${slideText}"`;
+                const response = await this.callGeminiAPI(fullPrompt);
+                return response.trim().replace(/"/g, '');
+            }
+
+            async performImageSearch(query, license, startIndex = 1) {
+                let url = `https://www.googleapis.com/customsearch/v1?key=${this.googleSearchKey}&cx=${this.googleEngineId}&q=${encodeURIComponent(query)}&searchType=image&num=10&start=${startIndex}`;
+                if (license) { url += `&rights=${license}`; }
+                const response = await fetch(url);
+                if (!response.ok) { const error = await response.json(); throw new Error(error.error.message || 'Failed to fetch images.'); }
+                const data = await response.json();
+                return data.items;
+            }
+
+            displayImageResults(items, append = false) {
+                const resultsContainer = this.imageSearch.resultsContainer;
+                if (!append) resultsContainer.innerHTML = '';
+                if (!items || items.length === 0) {
+                    if (!append) {
+                        resultsContainer.innerHTML = '';
+                        resultsContainer.appendChild(this.imageSearch.placeholder);
+                        this.imageSearch.placeholder.style.display = 'block';
+                        this.imageSearch.placeholder.textContent = 'No images found.';
+                    }
+                    return;
+                }
+                
+                if (this.imageSearch.placeholder) this.imageSearch.placeholder.style.display = 'none';
+
+                items.forEach(item => {
+                    if (!item.link) return;
+                    const itemDiv = document.createElement('div');
+                    itemDiv.className = 'image-search-item';
+
+                    const img = document.createElement('img');
+                    img.src = item.link;
+                    img.alt = item.title;
+                    img.onerror = () => { img.src = `https://placehold.co/300x300/e2e8f0/94a3b8?text=Error`; };
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'overlay';
+
+                    const insertBtn = document.createElement('button');
+                    insertBtn.textContent = 'Insert';
+                    insertBtn.className = 'btn btn--primary btn--small';
+                    insertBtn.onclick = () => {
+                        if (this.imageSearch.searchType === 'image') {
+                            this.insertImageFromUrl(item.link);
+                        } else {
+                            this.insertSvgFromUrl(item.link);
+                        }
+                        this.showNotification('success', `${this.imageSearch.searchType === 'image' ? 'Image' : 'Vector'} added to slide!`);
+                    };
+                    
+                    const downloadBtn = document.createElement('a');
+                    downloadBtn.textContent = 'Download';
+                    downloadBtn.className = 'btn btn--outline btn--small';
+                    downloadBtn.href = item.link;
+                    downloadBtn.download = item.title.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+                    downloadBtn.target = '_blank';
+
+                    overlay.appendChild(insertBtn);
+                    overlay.appendChild(downloadBtn);
+                    itemDiv.appendChild(img);
+                    itemDiv.appendChild(overlay);
+                    resultsContainer.appendChild(itemDiv);
+                });
+            }
+
+            // --- Math Modal ---
+            setupMathModalEventListeners() {
+                const MQ = MathQuill.getInterface(2);
+                this.mathModal.closeBtn.addEventListener('click', () => this.closeMathModal());
+                this.mathModal.insertBtn.addEventListener('click', () => this.insertMathEquation());
+                
+                const mathFieldSpan = this.mathModal.editorSpan;
+                const latexOutput = this.mathModal.latexOutput;
+                this.mathModal.mathField = MQ.MathField(mathFieldSpan, {
+                    spaceBehavesLikeTab: true,
+                    handlers: {
+                        edit: () => {
+                            latexOutput.value = this.mathModal.mathField.latex();
+                        }
+                    }
+                });
+            }
+
+            openMathModal() {
+                this.mathModal.element.style.display = 'flex';
+                this.mathModal.mathField.focus();
+            }
+
+            closeMathModal() {
+                this.mathModal.element.style.display = 'none';
+            }
+
+            insertMathEquation() {
+                const latex = this.mathModal.mathField.latex();
+                if (latex.trim() === '') {
+                    this.showNotification('error', 'Math field is empty.');
+                    return;
+                }
+                const encodedLatex = encodeURIComponent(latex);
+                const imageUrl = `https://latex.codecogs.com/png.latex?%5Cdpi%7B300%7D%20%5Chuge%20%5Ccolor%7Bblack%7D%20${encodedLatex}`;
+                
+                this.insertImageFromUrl(imageUrl);
+                this.showNotification('success', 'Equation inserted as image.');
+                this.closeMathModal();
+            }
+
+            // --- Helpers ---
+            rgbaToHex(rgba) {
+                if (!rgba || !rgba.startsWith('rgba')) return rgba;
+                const parts = rgba.substring(rgba.indexOf("(")).split(",");
+                const r = parseInt(parts[0].substring(1).trim(), 10);
+                const g = parseInt(parts[1].trim(), 10);
+                const b = parseInt(parts[2].trim(), 10);
+                return `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+            }
+
+            sanitizeAIObjects(objects) {
+                if (!Array.isArray(objects)) return;
+                objects.forEach(obj => {
+                    if (obj.fill && typeof obj.fill === 'string' && obj.fill.startsWith('rgba')) {
+                        obj.fill = this.rgbaToHex(obj.fill);
+                    }
+                     if (obj.fill === null) {
+                        obj.fill = this.themeColors.text;
+                    }
+                    if (obj.stroke && typeof obj.stroke === 'string' && obj.stroke.startsWith('rgba')) {
+                        obj.stroke = this.rgbaToHex(obj.stroke);
+                    }
+                     if (obj.stroke === null) {
+                        obj.stroke = this.themeColors.text;
+                    }
+                });
+            }
+
+            async callGeminiAPI(prompt) {
+                console.log("Sending prompt to AI:", prompt);
+                const API_URL = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${this.geminiApiKey}`;
+                
+                let lastError;
+                for (let i = 0; i < 3; i++) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                        });
+
+                        if (response.ok) {
+                            const result = await response.json();
+                             if (!result.candidates || !result.candidates[0].content.parts[0].text) {
+                                throw new Error("API returned an empty or invalid response.");
+                            }
+                            const responseText = result.candidates[0].content.parts[0].text;
+                            console.log("Received AI response:", responseText);
+                            return responseText;
+                        } else if (response.status === 503 || response.status === 429) {
+                            lastError = new Error(`API Error: ${response.statusText} (retrying...)`);
+                            console.warn(lastError);
+                            await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, i)));
+                        } else {
+                            const error = await response.json();
+                            throw new Error(`API Error: ${error.error?.message || 'Unknown API Error'}`);
+                        }
+                    } catch (error) {
+                        lastError = error;
+                    }
+                }
+                throw lastError;
+            }
+
+            parseJsonResponse(text) {
+                try {
+                    const match = text.match(/```json\s*([\s\S]*?)\s*```/);
+                    let jsonString = match ? match[1] : text;
+                    jsonString = jsonString.replace(/\/\/.*/g, '');
+                    return JSON.parse(jsonString);
+                } catch (e) {
+                    console.error("JSON Parse Error:", e, "Raw Text:", text);
+                    throw new Error("AI returned an invalid data format.");
+                }
+            }
+
+            showNotification(type, message) {
+                document.querySelectorAll('.notification').forEach(n => n.remove());
+                const notification = document.createElement('div');
+                notification.className = `notification ${type}`;
+                notification.textContent = message;
+                document.body.appendChild(notification);
+                setTimeout(() => notification.remove(), 3000);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            new PresentationDesigner();
+        });
+    </script>
+</body>
+</html>
+
